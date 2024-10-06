@@ -6,3 +6,6 @@ See the WIP programmer's manual: [docs](https://docs.google.com/document/d/1WJpP
 
 ## Build instructions
 `make`
+
+## Run
+`./obj/csxarch`
