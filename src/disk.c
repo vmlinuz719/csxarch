@@ -152,7 +152,7 @@ uint64_t do_cmd_read(disk_ctx_t *disk_ctx, disk_cmd_hdr_t *c, uint64_t *next) {
         
         uint16_t num_sectors = entry;
         uint64_t lba = entry >> 16;
-        printf("CSX4010: ENT %04X LBA %012lX LEN %04X\n", i, lba, num_sectors);
+        fprintf(stderr, "CSX4010: ENT %04X LBA %012lX LEN %04X\n", i, lba, num_sectors);
     }
     
     *next = disk_ctx->cmd_address + 32;
@@ -186,7 +186,7 @@ void *command_thread(void *ctx) {
         read_cmd(disk_ctx, &cmd, &e);
         
         if (e == OK) {
-            // printf("CSX4010: Got command 0x%01lX\n", disk_ctx->cmd_address);
+            // fprintf(stderr, "CSX4010: Got command 0x%01lX\n", disk_ctx->cmd_address);
             
             uint64_t next;
             disk_ctx->lrc = do_cmd(disk_ctx, &cmd, &next);
@@ -229,7 +229,7 @@ void *command_thread(void *ctx) {
                 }
             }
         } else {
-            // printf("CSX4010: Command read error 0x%01X\n", e);
+            // fprintf(stderr, "CSX4010: Command read error 0x%01X\n", e);
             disk_ctx->lrc = DISK_RC_BUS_ERROR;
             disk_ctx->attn = 1;
             chaining = 0;
