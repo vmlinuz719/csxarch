@@ -11,4 +11,4 @@ See the WIP programmer's manual: [docs](https://docs.google.com/document/d/1WJpP
 run `./obj/csxarch`
 
 ## Discord
-[check it out](https://discord.gg/UjWEcBYtpf)
+[check it out](https://discord.gg/UjWEcBYtpf), this is where I babble about development progress
