@@ -9,3 +9,6 @@ See the WIP programmer's manual: [docs](https://docs.google.com/document/d/1WJpP
 
 ## Run
 run `./obj/csxarch`
+
+## Discord
+[check it out](https://discord.gg/UjWEcBYtpf)
