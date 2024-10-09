@@ -89,6 +89,8 @@ void inst_DESTH(em3_regs_t *r, uint64_t i);
 void inst_DEST(em3_regs_t *r, uint64_t i);
 void inst_LSK(em3_regs_t *r, uint64_t i);
 void inst_STSK(em3_regs_t *r, uint64_t i);
+void inst_LM(em3_regs_t *r, uint64_t i);
+void inst_STM(em3_regs_t *r, uint64_t i);
 
 // Control Register Block
 void inst_MFCR(em3_regs_t *r, uint64_t i);

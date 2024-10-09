@@ -114,6 +114,8 @@ void inst_ex(em3_regs_t *r, uint64_t i) {
         case 0x6B:  inst_DEST           (r, i); break;
         case 0x6C:  inst_LSK            (r, i); break;
         case 0x6D:  inst_STSK           (r, i); break;
+        case 0x6E:  inst_LM             (r, i); break;
+        case 0x6F:  inst_STM            (r, i); break;
 
         // Control Register Block
         case 0x70:  inst_MFCR           (r, i); break;

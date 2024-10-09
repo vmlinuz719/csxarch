@@ -220,3 +220,67 @@ void inst_ST(em3_regs_t *r, uint64_t i) {
         r->increment = 4;
     }
 }
+
+void inst_LM(em3_regs_t *r, uint64_t i) {
+	INST_LEN(r, 4);
+	
+    uint64_t ctr = GET_PSW_CTR(r);
+    
+    uint64_t dst = RM_RD(i);
+    uint64_t limit = RM_RX(i);
+    
+    uint64_t addr =
+        get_reg(r, RM_RB(i))
+        + RM_I12(i);
+    
+    em3_access_error_t e = OK;
+    
+    uint64_t read_val = vread_l(r, addr + 8 * ctr, &e);
+    if (e) {
+        error(r, e);
+        return;
+    }
+    
+    set_reg(r, (dst + ctr) % 16, read_val);
+    
+    if ((dst + ctr) % 16 == limit) {
+        // done
+        r->increment = 4;
+        return;
+    } else {
+        SET_PSW_CTR(r, ctr + 1);
+        return;
+    }
+}
+
+void inst_STM(em3_regs_t *r, uint64_t i) {
+	INST_LEN(r, 4);
+	
+    uint64_t ctr = GET_PSW_CTR(r);
+    
+    uint64_t dst = RM_RD(i);
+    uint64_t limit = RM_RX(i);
+    
+    uint64_t addr =
+        get_reg(r, RM_RB(i))
+        + RM_I12(i);
+    
+    em3_access_error_t e = OK;
+    
+    uint64_t write_val = get_reg(r, (dst + ctr) % 16);
+    vwrite_l(r, addr + 8 * ctr, write_val, &e);
+    if (e) {
+        error(r, e);
+        return;
+    }
+    
+    if ((dst + ctr) % 16 == limit) {
+        // done
+        
+        r->increment = 4;
+        return;
+    } else {
+        SET_PSW_CTR(r, ctr + 1);
+        return;
+    }
+}
