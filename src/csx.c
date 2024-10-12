@@ -3,11 +3,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <byteswap.h>
 #include <pthread.h>
 #include <signal.h>
 #include <sys/time.h>
 
+#include "byteswap.h"
 #include "pagemap.h"
 #include "mmio.h"
 #include "error.h"
@@ -123,7 +123,11 @@ uint64_t read_u2b(em3_regs_t *r, uint64_t a, em3_access_error_t *e) {
             r->fault_addr = a;
             return 0;
         }
+#ifdef __CSX_LITTLE_ENDIAN__
         uint64_t result = (uint64_t) bswap_16(*((uint16_t *) (m + a)));
+#else
+        uint64_t result = (uint64_t) (*((uint16_t *) (m + a)));
+#endif
         return result;
     } else {
         // TODO: MMIO
@@ -175,7 +179,11 @@ uint64_t read_u4b(em3_regs_t *r, uint64_t a, em3_access_error_t *e) {
             r->fault_addr = a;
             return 0;
         }
+#ifdef __CSX_LITTLE_ENDIAN__
         uint64_t result = (uint64_t) bswap_32(*((uint32_t *) (m + a)));
+#else
+        uint64_t result = (uint64_t) (*((uint32_t *) (m + a)));
+#endif
         return result;
     } else {
         // TODO: MMIO
@@ -226,7 +234,11 @@ uint64_t read_8b(em3_regs_t *r, uint64_t a, em3_access_error_t *e) {
             r->fault_addr = a;
             return 0;
         }
+#ifdef __CSX_LITTLE_ENDIAN__
         uint64_t result = bswap_64(*((uint64_t *) (m + a)));
+#else
+        uint64_t result = (*((uint64_t *) (m + a)));
+#endif
         return result;
     } else {
         // TODO: MMIO
@@ -318,7 +330,11 @@ void write_2b(em3_regs_t *r, uint64_t a, uint64_t v, em3_access_error_t *e) {
             r->fault_addr = a;
             return;
         }
+#ifdef __CSX_LITTLE_ENDIAN__
         *((uint16_t *) (m + a)) = bswap_16((uint16_t) v);
+#else
+        *((uint16_t *) (m + a)) = ((uint16_t) v);
+#endif
     } else {
         // TODO: MMIO
         int unit = MMIO_UNIT(a);
@@ -367,7 +383,11 @@ void write_4b(em3_regs_t *r, uint64_t a, uint64_t v, em3_access_error_t *e) {
             r->fault_addr = a;
             return;
         }
+#ifdef __CSX_LITTLE_ENDIAN__
         *((uint32_t *) (m + a)) = bswap_32((uint32_t) v);
+#else
+        *((uint32_t *) (m + a)) = ((uint32_t) v);
+#endif
     } else {
         // TODO: MMIO
         int unit = MMIO_UNIT(a);
@@ -417,7 +437,11 @@ void write_8b(em3_regs_t *r, uint64_t a, uint64_t v, em3_access_error_t *e) {
             r->fault_addr = a;
             return;
         }
+#ifdef __CSX_LITTLE_ENDIAN__
         *((uint64_t *) (m + a)) = bswap_64(v);
+#else
+        *((uint64_t *) (m + a)) = (v);
+#endif
     } else {
         // TODO: MMIO
         int unit = MMIO_UNIT(a);

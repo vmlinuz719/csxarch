@@ -7,6 +7,15 @@
 #include "pagemap.h"
 #include "mmio.h"
 
+#if defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN || \
+    defined(__LITTLE_ENDIAN__) || \
+    defined(__ARMEL__) || \
+    defined(__THUMBEL__) || \
+    defined(__AARCH64EL__) || \
+    defined(_MIPSEL) || defined(__MIPSEL) || defined(__MIPSEL__)
+#define __CSX_LITTLE_ENDIAN__
+#endif
+
 #define NUM_INT 18
 #define NMI 16
 #define SOFT 17

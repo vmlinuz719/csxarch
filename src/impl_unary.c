@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include <byteswap.h>
+#include "byteswap.h"
 #include "csx.h"
 #include "csximpl.h"
 
