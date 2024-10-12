@@ -122,51 +122,80 @@ uint64_t do_cmd_read(disk_ctx_t *disk_ctx, disk_cmd_hdr_t *c, uint64_t *next) {
         return DISK_RC_BUS_ERROR;
     }
     
-    /*
-    if (disk_ctx->lun[c->lun].image == NULL) {
-        *next = c->lun;
-        return DISK_RC_NOT_READY;
-    }
-    */
-    
-    uint64_t list_head = read_8b(disk_ctx->cpu, disk_ctx->cmd_address + 16, &e);
+    uint64_t seek = read_8b(disk_ctx->cpu, disk_ctx->cmd_address + 16, &e) & 0xFFFFFFFFFFFF;
     if (e) {
         *next = disk_ctx->cmd_address + 16;
         return DISK_RC_BUS_ERROR;
     }
     
-    uint16_t num_entries = read_8b(disk_ctx->cpu, list_head, &e);
-    if (e) {
-        *next = list_head;
-        return DISK_RC_BUS_ERROR;
+    if (disk_ctx->lun[c->lun].image == NULL) {
+        *next = c->lun;
+        return DISK_RC_NOT_READY;
     }
     
-    for (int i = 1; i <= num_entries; i++) {
-        uint64_t address = list_head + i * 8;
-        
-        uint64_t entry = read_8b(disk_ctx->cpu, address, &e);
-        if (e) {
-            *next = address;
-            return DISK_RC_BUS_ERROR;
+    if (seek >= disk_ctx->lun[c->lun].num_sectors) {
+        *next = seek;
+        return DISK_RC_SECTOR_OVERRUN;
+    }
+    
+    FILE *fp = disk_ctx->lun[c->lun].image;
+    fseek(fp, seek * disk_ctx->lun[c->lun].sector_size, SEEK_SET);
+    
+    uint8_t *blk_buf = malloc(disk_ctx->lun[c->lun].sector_size);
+    
+    uint64_t result = DISK_RC_SUCCESS;
+    
+    int read = fread(blk_buf, 1, disk_ctx->lun[c->lun].sector_size, fp);
+    
+    if (feof(fp) || read < disk_ctx->lun[c->lun].sector_size) {
+        result = DISK_RC_SECTOR_OVERRUN;
+        *next = seek;
+    } else if (ferror(fp)) {
+        result = DISK_RC_MEDIUM_CHECK;
+        *next = seek;
+    }
+    
+    if (result == DISK_RC_SUCCESS) {
+        for (int i = 0; i < disk_ctx->lun[c->lun].sector_size; i++) {
+            write_1b(disk_ctx->cpu, c->buf_address, blk_buf[i], &e);
+            if (e) {
+                *next = c->buf_address;
+                result = DISK_RC_BUS_ERROR;
+                break;
+            } else {
+                c->buf_address++;
+            }
         }
-        
-        uint16_t num_sectors = entry;
-        uint64_t lba = entry >> 16;
-        fprintf(stderr, "CSX4010: ENT %04X LBA %012lX LEN %04X\n", i, lba, num_sectors);
     }
     
-    *next = disk_ctx->cmd_address + 32;
-    return DISK_RC_SUCCESS;
+    free(blk_buf);
+    
+    if (result == DISK_RC_SUCCESS) {
+        if (count) {
+            write_4b(disk_ctx->cpu, disk_ctx->cmd_address + 12, count - 1, &e);
+            if (e) {
+                *next = disk_ctx->cmd_address + 12;
+                return DISK_RC_BUS_ERROR;
+            }
+            
+            seek = (seek + 1) & 0xFFFFFFFFFFFF;
+            write_8b(disk_ctx->cpu, disk_ctx->cmd_address + 16, seek, &e);
+            if (e) {
+                *next = disk_ctx->cmd_address + 16;
+                return DISK_RC_BUS_ERROR;
+            }
+        } else {
+            *next = disk_ctx->cmd_address + 24;
+        }
+    }
+    
+    return result;
 }
 
 uint64_t do_cmd(disk_ctx_t *disk_ctx, disk_cmd_hdr_t *c, uint64_t *next) {
     switch (c->opcode) {
         case 0x4: {
             return do_cmd_read_ipl(disk_ctx, c, next);
-        } break;
-        
-        case 0x5: {
-            return do_cmd_read(disk_ctx, c, next);
         } break;
         
         default: {
@@ -226,6 +255,20 @@ void *command_thread(void *ctx) {
                 chaining = cmd.chain;
                 if (chaining) {
                     disk_ctx->cmd_address = next;
+                    
+                    write_8b(
+                        disk_ctx->cpu,
+                        disk_ctx->cmd_address, 
+                        cmd.buf_address,
+                        &e
+                    );
+                    
+                    if (e) {
+                        disk_ctx->lrc = DISK_RC_BUS_ERROR;
+                        disk_ctx->attn = 1;
+                        chaining = 0;
+                        disk_ctx->erd = disk_ctx->cmd_address;
+                    }
                 }
             }
         } else {

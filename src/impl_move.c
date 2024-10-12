@@ -12,17 +12,6 @@ void inst_MVR(em3_regs_t *r, uint64_t i) {
     set_reg(r, rd, get_reg(r, rs));
 }
 
-void inst_LWI(em3_regs_t *r, uint64_t i) {
-	INST_LEN(r, 4);
-	
-    r->increment = 4;
-
-    uint64_t i16 = RIw_I16(i);
-    int rd = RIw_RD(i);
-
-    set_reg(r, rd, i16);
-}
-
 void inst_LWIS(em3_regs_t *r, uint64_t i) {
 	INST_LEN(r, 4);
 	
@@ -136,7 +125,6 @@ void inst_LAPRL(em3_regs_t *r, uint64_t i) {
 
 void inst_load_imm_block(em3_regs_t *r, uint64_t i) {
     switch(MINOR_OPCODE_0(i)) {
-        case 0:     inst_LWI    (r, i); break;
         case 1:     inst_LWIS   (r, i); break;
         case 2:     inst_LHI    (r, i); break;
         case 3:     inst_LHIS   (r, i); break;
