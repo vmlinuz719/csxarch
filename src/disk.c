@@ -316,7 +316,6 @@ void disk_write
                 disk_ctx
             );
         } else {
-            pthread_mutex_unlock(&(disk_ctx->cmd_mutex));
             *e = BUS_ERROR;
         }
     } else {
