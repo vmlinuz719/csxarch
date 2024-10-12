@@ -184,6 +184,8 @@ uint64_t do_cmd_read(disk_ctx_t *disk_ctx, disk_cmd_hdr_t *c, uint64_t *next) {
                 *next = disk_ctx->cmd_address + 16;
                 return DISK_RC_BUS_ERROR;
             }
+            
+            *next = disk_ctx->cmd_address;
         } else {
             *next = disk_ctx->cmd_address + 24;
         }
@@ -196,6 +198,10 @@ uint64_t do_cmd(disk_ctx_t *disk_ctx, disk_cmd_hdr_t *c, uint64_t *next) {
     switch (c->opcode) {
         case 0x4: {
             return do_cmd_read_ipl(disk_ctx, c, next);
+        } break;
+        
+        case 0x5: {
+            return do_cmd_read(disk_ctx, c, next);
         } break;
         
         default: {
