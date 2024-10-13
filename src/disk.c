@@ -55,6 +55,33 @@ void read_cmd(disk_ctx_t *disk_ctx, disk_cmd_hdr_t *c, em3_access_error_t *e) {
     return;
 }
 
+uint64_t do_cmd_media(disk_ctx_t *disk_ctx, disk_cmd_hdr_t *c, uint64_t *next) {
+    em3_access_error_t e = OK;
+    
+    if (disk_ctx->lun[c->lun].image != NULL) {
+        uint64_t result = (
+            (disk_ctx->lun[c->lun].num_sectors - 1)
+            | (((uint64_t) disk_ctx->lun[c->lun].sector_size) << 48)
+            | (((uint64_t)(disk_ctx->lun[c->lun].write_protect & 1)) << 48)
+        );
+        
+        write_8b(
+            disk_ctx->cpu,
+            c->buf_address, 
+            result,
+            &e
+        );
+        
+        if (e) {
+            *next = c->buf_address;
+            return DISK_RC_BUS_ERROR;
+        }
+    }
+    
+    *next = disk_ctx->cmd_address + 16;
+    return DISK_RC_SUCCESS;
+}
+
 uint64_t do_cmd_read_ipl(disk_ctx_t *disk_ctx, disk_cmd_hdr_t *c, uint64_t *next) {
     em3_access_error_t e = OK;
     
@@ -280,6 +307,10 @@ uint64_t do_cmd_write(disk_ctx_t *disk_ctx, disk_cmd_hdr_t *c, uint64_t *next) {
 
 uint64_t do_cmd(disk_ctx_t *disk_ctx, disk_cmd_hdr_t *c, uint64_t *next) {
     switch (c->opcode) {
+        case 0x1: {
+            return do_cmd_media(disk_ctx, c, next);
+        } break;
+        
         case 0x4: {
             return do_cmd_read_ipl(disk_ctx, c, next);
         } break;
