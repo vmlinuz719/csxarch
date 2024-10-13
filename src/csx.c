@@ -630,9 +630,7 @@ void em_exit(em3_regs_t *r) {
     }
     pthread_mutex_destroy(&(r->intr_lock));
     pthread_cond_destroy(&(r->wake));
-    printf("\n================================================================================\n");
-    printf("Emulator exited after %ld instructions\n", r->count);
-    exit(EXIT_FAILURE);
+    exit(get_reg(r, CR_PSW) & 0xFFFFFFFFFFFF);
 }
 
 int intr_save(em3_regs_t *r) {
@@ -807,14 +805,14 @@ uint64_t vfetch(em3_regs_t *r, em3_access_error_t *e) {
 }
 
 // TODO: move Control+C NMI logic to console.c
-static volatile int nmi = 0;
 em3_regs_t *nmi_cpu;
 uint64_t last_instr = 0;
 struct timeval timer;
 
 void nmi_handler(int dummy) {
     (void) dummy;
-    // nmi = 1;
+    intr(nmi_cpu, NMI, 1);
+    /*
     struct timeval new_time;
     gettimeofday(&new_time, 0);
 
@@ -838,6 +836,7 @@ void nmi_handler(int dummy) {
 
     timer = new_time;
     last_instr = nmi_cpu->count;
+    */
 }
 
 void cpu_run(em3_regs_t *r) {
@@ -846,13 +845,9 @@ void cpu_run(em3_regs_t *r) {
     
     em3_access_error_t fetch_error = OK;
 
-    gettimeofday(&timer, 0);
+    //gettimeofday(&timer, 0);
 
     while (1) {
-        if (nmi) {
-            intr(r, NMI, 1);
-            nmi = 0;
-        }
         
         if (!(GET_NEW_PSW_WST(r))) {
             fetch_error = OK;
@@ -860,7 +855,6 @@ void cpu_run(em3_regs_t *r) {
             
             if (fetch_error) error(r, fetch_error);
 
-            // else {
             if (r->increment) set_reg(r, CR_PSW, get_reg(r, CR_PSW) & 0x7FFFFF000000F000);
             r->increment = 0;
 
@@ -875,7 +869,6 @@ void cpu_run(em3_regs_t *r) {
                 for (int i = NUM_INT - 1; i >= (int) GET_NEW_PSW_PRI(r); i--) {
                     // printf("SCAN %d\n", i);
                     if (r->intr[i]) {
-                        // printf("CAUGHT\n");
                         pending = i;
                         vector = r->intr[i];
                         break;
@@ -908,20 +901,9 @@ void cpu_run(em3_regs_t *r) {
             if ((!(GET_NEW_PSW_WST(r))) && (!(fetch_error))) {
                 inst_ex(r, inst);
                 r->pc += r->increment;
-                r->count++;
             }
-            // }
+            
         } else if (GET_NEW_PSW_PRI(r) == 0xF) {
-            uint64_t psw_hh = (get_reg(r, CR_PSW) >> 48) & 0xFFFF;
-            uint64_t psw_hl = (get_reg(r, CR_PSW) >> 32) & 0xFFFF;
-            uint64_t psw_lh = (get_reg(r, CR_PSW) >> 16) & 0xFFFF;
-            uint64_t psw_ll = (get_reg(r, CR_PSW) >> 0)  & 0xFFFF;
-            
-            sleep(1);
-            
-            printf("\n X %04lX %04lX %04lX %04lX\n",
-                psw_hh, psw_hl, psw_lh, psw_ll);
-            
             break;
         }
         else {
