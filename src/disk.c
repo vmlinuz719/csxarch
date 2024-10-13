@@ -78,6 +78,7 @@ uint64_t do_cmd_media(disk_ctx_t *disk_ctx, disk_cmd_hdr_t *c, uint64_t *next) {
         }
     }
     
+    c->buf_address += 8;
     *next = disk_ctx->cmd_address + 16;
     return DISK_RC_SUCCESS;
 }
