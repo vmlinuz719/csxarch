@@ -66,7 +66,7 @@ uint64_t read_u1b(em3_regs_t *r, uint64_t a, em3_access_error_t *e) {
     
     // no alignment required for bytes
     if (a < MMIO_BASE) {
-        if (a >= r->mem_limit - 1) {
+        if (a > r->mem_limit - 1) {
             *e = BUS_ERROR;
             r->fault_sense = 1;
             r->fault_addr = a;
@@ -117,7 +117,7 @@ uint64_t read_u2b(em3_regs_t *r, uint64_t a, em3_access_error_t *e) {
     }
 
     if (a < MMIO_BASE) {
-        if (a >= r->mem_limit - 2) {
+        if (a > r->mem_limit - 2) {
             *e = BUS_ERROR;
             r->fault_sense = 1;
             r->fault_addr = a;
@@ -173,7 +173,7 @@ uint64_t read_u4b(em3_regs_t *r, uint64_t a, em3_access_error_t *e) {
     }
 
     if (a < MMIO_BASE) {
-        if (a >= r->mem_limit - 4) {
+        if (a > r->mem_limit - 4) {
             *e = BUS_ERROR;
             r->fault_sense = 1;
             r->fault_addr = a;
@@ -228,7 +228,7 @@ uint64_t read_8b(em3_regs_t *r, uint64_t a, em3_access_error_t *e) {
     }
 
     if (a < MMIO_BASE) {
-        if (a >= r->mem_limit - 8) {
+        if (a > r->mem_limit - 8) {
             *e = BUS_ERROR;
             r->fault_sense = 1;
             r->fault_addr = a;
@@ -274,7 +274,7 @@ void write_1b(em3_regs_t *r, uint64_t a, uint64_t v, em3_access_error_t *e) {
     // no alignment required for bytes
     
     if (a < MMIO_BASE) {
-        if (a >= r->mem_limit - 1) {
+        if (a > r->mem_limit - 1) {
             *e = BUS_ERROR;
             r->fault_sense = 2;
             r->fault_addr = a;
@@ -324,7 +324,7 @@ void write_2b(em3_regs_t *r, uint64_t a, uint64_t v, em3_access_error_t *e) {
     }
 
     if (a < MMIO_BASE) {
-        if (a >= r->mem_limit - 2) {
+        if (a > r->mem_limit - 2) {
             *e = BUS_ERROR;
             r->fault_sense = 2;
             r->fault_addr = a;
@@ -377,7 +377,7 @@ void write_4b(em3_regs_t *r, uint64_t a, uint64_t v, em3_access_error_t *e) {
     }
 
     if (a < MMIO_BASE) {
-        if (a >= r->mem_limit - 4) {
+        if (a > r->mem_limit - 4) {
             *e = BUS_ERROR;
             r->fault_sense = 2;
             r->fault_addr = a;
@@ -431,7 +431,7 @@ void write_8b(em3_regs_t *r, uint64_t a, uint64_t v, em3_access_error_t *e) {
     }
     
     if (a < MMIO_BASE) {
-        if (a >= r->mem_limit - 8) {
+        if (a > r->mem_limit - 8) {
             *e = BUS_ERROR;
             r->fault_sense = 2;
             r->fault_addr = a;
@@ -937,9 +937,9 @@ int main(int argc, char *argv[]) {
 
     init_page_map(&r.map);
 
-    uint8_t *memory = malloc(1048576);
+    uint8_t *memory = malloc(134217728);
     r.memory = memory;
-    r.mem_limit = 1048576;
+    r.mem_limit = 134217728;
     
     mmio_unit_t units[2];
     r.mmio = units;
