@@ -152,10 +152,11 @@ typedef struct em3_regs_t {
     int any_pending;
     int intr[NUM_INT];
     void (*intr_ack[NUM_INT])(struct em3_regs_t *, int);
+    int timer_active;
     
     pthread_mutex_t cas_lock;
 
-    pthread_t monitor_thread;
+    pthread_t monitor_thread, timer_thread;
 } em3_regs_t;
 
 int intr(em3_regs_t *r, int which, int vector);

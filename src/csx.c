@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <signal.h>
+#include <time.h>
 #include <sys/time.h>
 
 #include "byteswap.h"
@@ -630,6 +631,10 @@ void em_exit(em3_regs_t *r) {
     }
     pthread_mutex_destroy(&(r->intr_lock));
     pthread_cond_destroy(&(r->wake));
+    if (r->timer_active) {
+        r->timer_active = 0;
+        pthread_cancel(r->timer_thread);
+    }
     exit(get_reg(r, CR_PSW) & 0xFFFFFFFFFFFF);
 }
 
@@ -741,9 +746,9 @@ void vwrite_l(em3_regs_t *r, uint64_t a, uint64_t v, em3_access_error_t *e) {
 
 static const uint8_t jeff[] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, // 0x
-    0, 3, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 1x
+    0, 3, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 1x - revisit worst case?
     1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, // 2x
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 1, 1, 1, 1, // 3x - revisit worst case?
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 1, 1, 1, 1, // 3x
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 4x
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, // 5x
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, // 6x
@@ -804,39 +809,53 @@ uint64_t vfetch(em3_regs_t *r, em3_access_error_t *e) {
     return r->instruction_buffer;
 }
 
+void *timer_thread(void *ctx) {
+    em3_regs_t *r = ctx;
+    
+    while (1) {
+        struct timeval t1, t2;
+        double elapsed = 0;
+
+        gettimeofday(&t1, NULL);
+        
+        uint64_t jiffy = ((r->regs[NEW_CR_TIMER] & 0xFF00000000) >> 32) + 1;
+        struct timespec remaining = {0, 0}, request = {0, 1000000 * jiffy}; 
+        
+        while (elapsed < (double) (r->regs[NEW_CR_TIMER] & 0xFFFFFFFF)) {
+            nanosleep(&request, &remaining);
+            while (remaining.tv_sec || remaining.tv_nsec) {
+                request.tv_sec = remaining.tv_sec;
+                request.tv_nsec = remaining.tv_nsec;
+                nanosleep(&request, &remaining);
+            }
+          
+            gettimeofday(&t2, NULL);
+
+            elapsed = ((t2.tv_sec - t1.tv_sec) * 1000.0);
+            elapsed += ((t2.tv_usec - t1.tv_usec) / 1000.0);
+        }
+        
+        if (!(r->regs[NEW_CR_TIMER] & 0xFFFFFFFF)) {
+            r->timer_active = 0;
+            break;
+        } else {
+            intr(
+                r,
+                (r->regs[NEW_CR_TIMER] & 0xF0000000000) >> 40,
+                (r->regs[NEW_CR_TIMER] & 0x3F00000000000) >> 44
+            );
+            r->count += 1;
+        }
+    }
+}
+
 // TODO: move Control+C NMI logic to console.c
 em3_regs_t *nmi_cpu;
 uint64_t last_instr = 0;
-struct timeval timer;
 
 void nmi_handler(int dummy) {
     (void) dummy;
     intr(nmi_cpu, NMI, 1);
-    /*
-    struct timeval new_time;
-    gettimeofday(&new_time, 0);
-
-    long seconds = new_time.tv_sec - timer.tv_sec;
-    long microseconds = new_time.tv_usec - timer.tv_usec;
-
-    double elapsed = seconds + microseconds * 1e-6;
-
-    uint64_t instrs = nmi_cpu->count - last_instr;
-    double mips = (instrs / elapsed) / (double) 1000000;
-
-    for (int i = 0; i < 24; i += 4) {
-        for (int j = 0; j < 4; j++) {
-            uint64_t rv = get_reg(nmi_cpu, i + j);
-            printf("%016lX ", j == 0 && i == 0 ? nmi_cpu->pc : rv);
-        }
-        printf("\n");
-    }
-
-    printf("\n*** %ld / %.4f = %.4f MIPS ***\n", instrs, elapsed, mips);
-
-    timer = new_time;
-    last_instr = nmi_cpu->count;
-    */
 }
 
 void cpu_run(em3_regs_t *r) {
@@ -844,8 +863,6 @@ void cpu_run(em3_regs_t *r) {
     signal(SIGINT, nmi_handler);
     
     em3_access_error_t fetch_error = OK;
-
-    //gettimeofday(&timer, 0);
 
     while (1) {
         
@@ -903,6 +920,16 @@ void cpu_run(em3_regs_t *r) {
                 r->pc += r->increment;
             }
             
+            if (!r->timer_active && (r->regs[NEW_CR_TIMER] & 0xFFFFFFFF)) {
+                r->timer_active = 1;
+                pthread_create(
+                    &(r->timer_thread),
+                    NULL,
+                    timer_thread,
+                    r
+                );
+            }
+            
         } else if (GET_NEW_PSW_PRI(r) == 0xF) {
             break;
         }
@@ -934,6 +961,7 @@ int main(int argc, char *argv[]) {
     r.count = 0;
     r.fault_addr = 0;
     r.fault_sense = 0;
+    r.timer_active = 0;
 
     init_page_map(&r.map);
 

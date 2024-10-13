@@ -28,6 +28,8 @@ START:          LAR     %X,@ROM_START@REL
                 ST      %X,$56(%0)
                 LHI     %X,@CONINTR
                 ST      %X,$128(%0)
+                LHI     %X,@TIMER
+                ST      %X,$136(%0)
                 
                 LHI     %X,@PAGEFAULT
                 OWI     %X,#607
@@ -45,6 +47,10 @@ START:          LAR     %X,@ROM_START@REL
                 XR      %A,%A
                 OIHH    %A,#1
                 MTCR    %PSW,%A
+
+                LLI     %A,#1F00000003E8
+                OIHH    %A,#1
+                MTCR    %TIMER,%A
 
                 BX      %SP
 
@@ -558,7 +564,14 @@ CONINTR:        ST      %A,#200
                 L       %A,#200
                 L       %X,#208
                 REX
-                
+
+TIMER:          ST      %A,#200
+                LSI     %A,%1
+                A       %A,#228
+                ST      %A,#228
+                L       %A,#200
+                REX
+
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
                 ALIGN   #10
