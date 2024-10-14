@@ -872,7 +872,7 @@ void cpu_run(em3_regs_t *r) {
             
             if (fetch_error) error(r, fetch_error);
 
-            if (r->increment) set_reg(r, CR_PSW, get_reg(r, CR_PSW) & 0x7FFFFF000000F000);
+            if (r->increment) set_reg(r, CR_PSW, get_reg(r, CR_PSW) & 0x7FFFFF000000FF00);
             r->increment = 0;
 
             if (r->any_pending) {

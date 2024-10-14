@@ -171,6 +171,48 @@ NTOA_END:       XR      %A,%A
                 POP     %A4
                 RET
 
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;   ATON - ASCII To (Hexadecimal) Number
+            ;
+            ;       A:          Input buffer
+            ;       X:          Output buffer
+            ;       A2:         Maximum digits
+            ;       Returns:    Number of digits read
+            ;                   Result stored at (X)
+            ;
+            
+ATON:           XR      %A3,%A3                 ; Accumulated result
+                
+                BRGE    %A2,%0,@ATON_END@BR
+                
+                PUSH    %A4                     ; Read character
+                PUSH    %A5                     ; Index
+                XR      %A5,%A5
+                
+ATON_LOOP:      LC      %A4,(%A,%A5)
+                BCSC    #30,%A4,@ATON_BRK@BR
+                BCXC    #46,%A4,@ATON_BRK@BR
+                
+                BCSC    #3A,%A4,@ATON_PARSE@BR
+                BCSC    #41,%A4,@ATON_BRK@BR
+                
+                SWI     %A4,$7
+
+ATON_PARSE:     NWI     %A4,#0F
+                SL      %A3,%A3,$4
+                OR      %A3,%A4
+                IN      %A5,%A5
+                BRLT    %A2,%A5,@ATON_LOOP@BR
+                
+ATON_BRK:       ST      %A3,(%X)
+                MVR     %A3,%A5
+                POP     %A5
+                POP     %A4
+                
+ATON_END:       MVR     %A,%A3
+                RET
+
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             ;
             ;   SCAND - Number To ASCII Zero Terminated

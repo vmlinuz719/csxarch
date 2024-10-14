@@ -90,7 +90,7 @@
 #define CR_PSW 16 // Processor Status Word
 
 #define INST_LEN(r, n) set_reg((r), CR_PSW, \
-	(get_reg((r), CR_PSW) & 0xFFFFFFFFFFFFF000) | (n))
+	(get_reg((r), CR_PSW) & 0xFFFFFFFFFFFFFF00) | (n))
 
 #define GET_PSW_CTR(r) ((get_reg((r), CR_PSW) & 0xFFFF0000) >> 16)
 #define SET_PSW_CTR(r, n) set_reg((r), CR_PSW, \
