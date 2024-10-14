@@ -30,8 +30,10 @@ IPI_INIT:
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             
-                MARK    #200 MEMORY:
-                MARK    #208 CONSOLE:
+                MARK    #200    INTR_SAV:
+                
+                MARK    #210    MEMORY:
+                MARK    #218    CONSOLE:
 
                 MARK    #1000
 
@@ -74,6 +76,12 @@ CI_FAIL:        LWI     %A,#FFFF                ; DWS -1 - no console
 CI_FOUND:       SL      %X,%X,$32
                 OIHH    %X,#FFFF
                 ST      %X,@CONSOLE             ; Save console base address
+                
+                LAR     %A,@CNSLINTR@REL        ; Set interrupt handler
+                ST      %A,$128
+                
+                LWI     %A,#F1                  ; Set full echo, destructive
+                STC     %A,$2(%X)
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             ;
@@ -93,12 +101,23 @@ HELLO:          LAR     %A,@MODEL@REL
                 AWI     %SP,%SP,#20
                 LAR     %A,@BYTES_OK@REL
                 BASR    %LR,@PRINTD@BR
+                
+                MTCR    %PSW,%0                 ; Ungate interrupts
+                
+                SWI     %SP,#100
+                MVR     %A,%SP
+                BASR    %LR,@SCAND@BR
+                MVR     %A,%SP
+                BASR    %LR,@PRINTD@BR
+                LAR     %A,@NEWLINE@REL
+                BASR    %LR,@PRINTD@BR
+                AWI     %SP,%SP,#100
 
 HALT:           LLI     %A,#CCCCCCCCCCCC        ; Operator-requested shutdown
                 OIHH    %A,#6000
                 MTCR    %PSW,%A
 
-            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             ;
             ;   PRINTD - Print ASCII Zero Terminated to debug console
             ;
@@ -151,6 +170,58 @@ NTOA_END:       XR      %A,%A
                 AWI     %SP,%SP,$24
                 POP     %A4
                 RET
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;   SCAND - Number To ASCII Zero Terminated
+            ;
+            ;       A:          Input buffer
+            ;       Returns:    Number of characters read
+            ;
+
+SCAND:          L       %A2,@CONSOLE
+                XR      %X,%X
+
+SCAND_FLUSH:    LC      %A3,(%A2)
+                BRCI    %A3,%7,@SCAND_WAIT@BR
+                LC      %A3,#1(%A2)
+                STCTC   %A3,(%A,%X)
+                BR      @SCAND_FLUSH@BR
+
+SCAND_WAIT:     MFCR    %PSW,%A3
+                OIHH    %A3,#2000
+                MTCR    %PSW,%A3
+                
+SCAND_POLL:     LC      %A3,#1(%A2)
+                BCEQ    #A,%A3,@SCAND_END@BR
+                BCEQ    #8,%A3,@SCAND_BSP@BR
+                STCTC   %A3,(%A,%X)
+                
+SCAND_FLSH2:    LC      %A3,(%A2)
+                BRSI    %A3,%7,@SCAND_POLL@BR
+                BR      @SCAND_WAIT@BR
+
+SCAND_END:      STC     %0,(%A,%X)
+                MVR     %A,%X
+                RET
+
+SCAND_BSP:      BREQ    %0,%X,@SCAND_FLSH2@BR
+                DE      %X,%X
+                BR      @SCAND_FLSH2@BR
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;   CNSLINTR: Console interrupt handler
+            ;
+
+CNSLINTR:       STM     %A,%X,@INTR_SAV
+                MFCR    %SRPSW,%A
+                XR      %X,%X
+                OIHH    %X,#0FFF
+                NR      %A,%X
+                MTCR    %SRPSW,%A
+                LM      %A,%X,@INTR_SAV
+                REX
 
 DIGITS:         DCS     "0123456789ABCDEF"
 MODEL:          DCS     "CSX 896//MV ROM02 | "

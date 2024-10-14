@@ -895,7 +895,7 @@ void cpu_run(em3_regs_t *r) {
                 if (pending > -1) {
                     r->intr_ack[pending](r, pending);
                     if (!intr_save(r)) {
-                        // printf("VECTOR %d @ %16lX\n", vector, r->pc);
+                        // fprintf(stderr, "VECTOR %d @ %16lX\n", vector, r->pc);
                         r->pc = read_8b(r, 8 * vector, NULL);
                         SET_NEW_PSW_PRI(r, 0);
                         set_reg(r, CR_PSW, get_reg(r, CR_PSW) & ~(NEW_CR_PSW_PL));
