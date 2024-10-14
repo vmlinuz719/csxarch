@@ -179,7 +179,11 @@ NTOA_END:       XR      %A,%A
             ;       Returns:    Number of characters read
             ;
 
-SCAND:          L       %A2,@CONSOLE
+SCAND:          PUSH    %A4
+                LWIS    %A4,#FFFF
+                SL      %A4,%A4,$-4
+                
+                L       %A2,@CONSOLE
                 XR      %X,%X
 
 SCAND_FLUSH:    LC      %A3,(%A2)
@@ -189,6 +193,7 @@ SCAND_FLUSH:    LC      %A3,(%A2)
                 BR      @SCAND_FLUSH@BR
 
 SCAND_WAIT:     MFCR    %PSW,%A3
+                NR      %A3,%A4
                 OIHH    %A3,#2000
                 MTCR    %PSW,%A3
                 
@@ -197,12 +202,18 @@ SCAND_POLL:     LC      %A3,#1(%A2)
                 BCEQ    #8,%A3,@SCAND_BSP@BR
                 STCTC   %A3,(%A,%X)
                 
-SCAND_FLSH2:    LC      %A3,(%A2)
+SCAND_FLSH2:    MFCR    %PSW,%A3                ; hold intrs while flushing
+                NR      %A3,%A4
+                OIHH    %A3,#4000
+                MTCR    %PSW,%A3
+
+                LC      %A3,(%A2)
                 BRSI    %A3,%7,@SCAND_POLL@BR
                 BR      @SCAND_WAIT@BR
 
 SCAND_END:      STC     %0,(%A,%X)
                 MVR     %A,%X
+                POP     %A4
                 RET
 
 SCAND_BSP:      BREQ    %0,%X,@SCAND_FLSH2@BR
