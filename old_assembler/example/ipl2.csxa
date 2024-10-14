@@ -235,7 +235,7 @@ ATON_END:       MVR     %A,%A3
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             ;
-            ;   SCAND - Number To ASCII Zero Terminated
+            ;   SCAND - Read line from debug console
             ;
             ;       A:          Input buffer
             ;       Returns:    Number of characters read
@@ -251,6 +251,8 @@ SCAND:          PUSH    %A4
 SCAND_FLUSH:    LC      %A3,(%A2)
                 BRCI    %A3,%7,@SCAND_WAIT@BR
                 LC      %A3,#1(%A2)
+                BCEQ    #A,%A3,@SCAND_END@BR
+                BCEQ    #8,%A3,@SCAND_BSP@BR
                 STCTC   %A3,(%A,%X)
                 BR      @SCAND_FLUSH@BR
 
@@ -261,15 +263,10 @@ SCAND_WAIT:     MFCR    %PSW,%A3
                 
 SCAND_POLL:     LC      %A3,#1(%A2)
                 BCEQ    #A,%A3,@SCAND_END@BR
-                BCEQ    #8,%A3,@SCAND_BSP@BR
+                BCEQ    #8,%A3,@SCAND_BSP2@BR
                 STCTC   %A3,(%A,%X)
                 
-SCAND_FLSH2:    MFCR    %PSW,%A3                ; hold intrs while flushing
-                NR      %A3,%A4
-                OIHH    %A3,#4000
-                MTCR    %PSW,%A3
-
-                LC      %A3,(%A2)
+SCAND_FLSH2:    LC      %A3,(%A2)
                 BRSI    %A3,%7,@SCAND_POLL@BR
                 BR      @SCAND_WAIT@BR
 
@@ -278,7 +275,11 @@ SCAND_END:      STC     %0,(%A,%X)
                 POP     %A4
                 RET
 
-SCAND_BSP:      BREQ    %0,%X,@SCAND_FLSH2@BR
+SCAND_BSP:      BREQ    %0,%X,@SCAND_FLUSH@BR
+                DE      %X,%X
+                BR      @SCAND_FLUSH@BR
+
+SCAND_BSP2:     BREQ    %0,%X,@SCAND_FLSH2@BR
                 DE      %X,%X
                 BR      @SCAND_FLSH2@BR
 
