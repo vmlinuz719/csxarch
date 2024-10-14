@@ -101,17 +101,37 @@ HELLO:          LAR     %A,@MODEL@REL
                 AWI     %SP,%SP,#20
                 LAR     %A,@BYTES_OK@REL
                 BASR    %LR,@PRINTD@BR
+                LAR     %A,@NEWLINE@REL
+                BASR    %LR,@PRINTD@BR
                 
-                MTCR    %PSW,%0                 ; Ungate interrupts
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;   CMD - Read commands
+            ;
                 
+CMD:            MTCR    %PSW,%0                 ; Ungate interrupts
+
+                LAR     %A,@NEWLINE@REL
+                BASR    %LR,@PRINTD@BR
+
+                LAR     %X,@CMD@REL
+                ST      %X,$8
+    
+CMD_READ:       LAR     %A,@PROMPT@REL
+                BASR    %LR,@PRINTD@BR
+    
                 SWI     %SP,#100
                 MVR     %A,%SP
                 BASR    %LR,@SCAND@BR
-                MVR     %A,%SP
+                
+                MVR     %A,%SP                  ; TODO: do command
                 BASR    %LR,@PRINTD@BR
                 LAR     %A,@NEWLINE@REL
                 BASR    %LR,@PRINTD@BR
+                
                 AWI     %SP,%SP,#100
+                
+                BR      @CMD_READ@BR
 
 HALT:           LLI     %A,#CCCCCCCCCCCC        ; Operator-requested shutdown
                 OIHH    %A,#6000
@@ -277,7 +297,11 @@ CNSLINTR:       STM     %A,%X,@INTR_SAV
                 REX
 
 DIGITS:         DCS     "0123456789ABCDEF"
-MODEL:          DCS     "CSX 896//MV ROM02 | "
+MODEL:          DC      #A
+                DCS     "CSX 896//MV ROM02 | "
                 DC      #0
 BYTES_OK:       DCS     " bytes OK"
-NEWLINE:        DW      #0A00
+                DC      #0
+NEWLINE:        DW      #A00
+PROMPT:         DCS     "> "
+                DC      #0
