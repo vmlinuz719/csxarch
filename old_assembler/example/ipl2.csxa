@@ -129,7 +129,30 @@ CMD_READ:       LAR     %A,@PROMPT@REL
                 LAR     %A,@NEWLINE@REL
                 BASR    %LR,@PRINTD@BR
                 
+                XR      %X,%X
+                SCAST   %0,%0,(%SP,%X)
+                
+                SWI     %SP,#20
+                MVR     %A,%X
+                MVR     %X,%SP
+                LWI     %A2,#10
+                LWI     %A3,$10
+                BASR    %LR,@NTOA@BR
+                MVR     %A,%SP
+                SWI     %SP,#18
+                LAR     %A2,@PADDING_SPACES@REL
+                XR      %A3,%A3
+                MVST    %SP,%0,(%A2,%A3)
+                MVR     %X,%SP
+                BASR    %LR,@PADL@BR
+                MVR     %A,%SP
+                BASR    %LR,@PRINTD@BR
+                AWI     %SP,%SP,#38
+                
                 AWI     %SP,%SP,#100
+                
+                LAR     %A,@NEWLINE@REL
+                BASR    %LR,@PRINTD@BR
                 
                 BR      @CMD_READ@BR
 
@@ -177,11 +200,11 @@ NTOA:           PUSH    %A4
                 STC     %0,(%SP,%A2)
                 
 NTOA_LOOP:      BREQ    %0,%A2,@NTOA_END@BR
-                BREQ    %0,%A,@NTOA_END@BR
                 DMR     %A,%A3,%A4
                 LAR     %A4,@DIGITS@REL(%A4)
                 LC      %A4,(%A4)
                 STCDC   %A4,(%SP,%A2)
+                BREQ    %0,%A,@NTOA_END@BR
                 BR      @NTOA_LOOP@BR
 
 NTOA_END:       XR      %A,%A
@@ -189,6 +212,31 @@ NTOA_END:       XR      %A,%A
                 MVST    %X,%0,(%A3,%A)
                 AWI     %SP,%SP,$24
                 POP     %A4
+                RET
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;   PADL - Left Pad
+            ;
+            ;       A:          Input buffer
+            ;       X:          Output buffer
+            ;       Returns:    Number of characters copied
+            ;
+            
+PADL:           XR      %A2,%A2
+                XR      %A3,%A3
+                SCAST   %0,%0,(%A,%A2)
+                SCAST   %0,%0,(%X,%A3)
+                BRGT    %A3,%A2,@PDL_FAIL@BR
+                SR      %A3,%A2
+                AR      %X,%A3
+                XR      %A2,%A2
+                MVSTR   %X,%0,(%A,%A2)
+                BR      @PADL_END@BR
+
+PDL_FAIL:       LSIS    %A2,%15
+
+PADL_END:       MVR     %A,%A2
                 RET
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -305,4 +353,8 @@ BYTES_OK:       DCS     " bytes OK"
                 DC      #0
 NEWLINE:        DW      #A00
 PROMPT:         DCS     "> "
+                DC      #0
+PADDING_ZERO:   DCS     "0000000000000000"
+                DC      #0
+PADDING_SPACES: DCS     "                "
                 DC      #0
