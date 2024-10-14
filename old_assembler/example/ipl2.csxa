@@ -1,0 +1,159 @@
+
+            ; Using 4-register (A,X,A2,A3) fast-call
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;   ROM SHADOW - Copy the ROM image into low memory (performance)
+            ;
+
+ROM_BASE:       XR      %A,%A                   ; Gate external interrupts
+                OIHH    %A,#4000
+                MTCR    %PSW,%A
+
+                LAR     %A,@ROM_BASE@REL        ; Initialize all handlers
+                ST      %A,$0                   ; - reset on exception
+                ST      %A,$8
+                ST      %A,$16
+                ST      %A,$24
+                ST      %A,$32
+                ST      %A,$40
+                ST      %A,$48
+                ST      %A,$56
+
+                LAR     %X,@IPI_INIT@REL
+                LWI     %X2,#1000               ; Address low memory
+                MVBL    %X2,$4095(%X)
+                
+                BX      %X2
+
+IPI_INIT:
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            
+                MARK    #200 MEMORY:
+                MARK    #208 CONSOLE:
+
+                MARK    #1000
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;   MEMORY TEST - Count available physical memory
+            ;
+            
+MEMTEST:        XR      %A,%A                   ; Initialize counters
+                
+                L       %A2,$24
+                LAR     %X,@MT_END@REL          ; Set bus error handler
+                ST      %X,$24
+                
+MT_COUNT:       L       %0,(%A)
+                AWI     %A,%A,$8
+                BR      @MT_COUNT@BR
+                
+MT_END:         ST      %A2,$24                 ; Reset bus error handler
+                ST      %A,@MEMORY              ; Save memory amount
+                MVR     %SP,%A                  ; Set save area stack
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;   CONSOLE INIT - Initialize support console
+            ;
+
+CNSLINIT:       XR      %X,%X
+
+CI_LOOP:        SIO     %A,%0,%X,$0             ; Scan for 1896 support console
+                BREQ    %0,%A,@CI_FAIL@BR
+                BCEQ    #1896,%A,@CI_FOUND@BR
+                IN      %X,%X
+                BR      @CI_LOOP@BR
+
+CI_FAIL:        LWI     %A,#FFFF                ; DWS -1 - no console
+                OIHH    %A,#6000
+                MTCR    %PSW,%A
+
+CI_FOUND:       SL      %X,%X,$32
+                OIHH    %X,#FFFF
+                ST      %X,@CONSOLE             ; Save console base address
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;   HELLO - Identify system
+            ;
+
+HELLO:          LAR     %A,@MODEL@REL
+                BASR    %LR,@PRINTD@BR
+                SWI     %SP,#20
+                MVR     %X,%SP
+                L       %A,@MEMORY
+                LWI     %A2,#10
+                LWI     %A3,$10
+                BASR    %LR,@NTOA@BR
+                MVR     %A,%SP
+                BASR    %LR,@PRINTD@BR
+                AWI     %SP,%SP,#20
+                LAR     %A,@BYTES_OK@REL
+                BASR    %LR,@PRINTD@BR
+
+HALT:           LLI     %A,#CCCCCCCCCCCC        ; Operator-requested shutdown
+                OIHH    %A,#6000
+                MTCR    %PSW,%A
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;   PRINTD - Print ASCII Zero Terminated to debug console
+            ;
+            ;   PROCEDURE PRINTD (S &STRING) INTEGER
+            ;
+            ;       A:          Address of string
+            ;       Returns:    Number of characters printed
+            ;
+
+PRINTD:         L       %A2,@CONSOLE
+                XR      %X,%X
+
+PRINTD_POLL:    LC      %A3,(%A2)
+                BRCI    %A3,%6,@PRINTD_POLL@BR
+                LCTC    %A3,(%A,%X)
+                BREQ    %0,%A3,@PRINTD_END@BR
+                STC     %A3,#3(%A2)
+                BR      @PRINTD_POLL@BR
+
+PRINTD_END:     DE      %A,%X
+                RET
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;   NTOA - Number To ASCII Zero Terminated
+            ;
+            ;       A:          Input number
+            ;       X:          Output buffer
+            ;       A2:         Maximum digits
+            ;       A3:         Base
+            ;       Returns:    Number of characters copied
+            ;
+
+NTOA:           PUSH    %A4
+                
+                SWI     %SP,$24
+                STC     %0,(%SP,%A2)
+                
+NTOA_LOOP:      BREQ    %0,%A2,@NTOA_END@BR
+                BREQ    %0,%A,@NTOA_END@BR
+                DMR     %A,%A3,%A4
+                LAR     %A4,@DIGITS@REL(%A4)
+                LC      %A4,(%A4)
+                STCDC   %A4,(%SP,%A2)
+                BR      @NTOA_LOOP@BR
+
+NTOA_END:       XR      %A,%A
+                AER     %A3,%SP,%A2
+                MVST    %X,%0,(%A3,%A)
+                AWI     %SP,%SP,$24
+                POP     %A4
+                RET
+
+DIGITS:         DCS     "0123456789ABCDEF"
+MODEL:          DCS     "CSX 896//MV ROM02 | "
+                DC      #0
+BYTES_OK:       DCS     " bytes OK"
+NEWLINE:        DW      #0A00

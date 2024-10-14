@@ -565,12 +565,17 @@ CONINTR:        ST      %A,#200
                 L       %X,#208
                 REX
 
-TIMER:          ST      %A,#200
+TIMER:          STM     %A,%X,#200
+                LAR     %X,@TIMER_COUNT@REL
                 LSI     %A,%1
-                A       %A,#228
-                ST      %A,#228
-                L       %A,#200
+                A       %A,(%X)
+                ST      %A,(%X)
+                LM      %A,%X,#200
                 REX
+
+                ALIGN   #8
+                
+TIMER_COUNT:    DL      #0
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -739,7 +744,7 @@ DEC_END:        RET
 KF_BENCH:       PUSH    %LR
                 PUSH    %A4
             
-                LWI     %A4,#FFFF
+                LWI     %A4,#FFF
                 MVR     %A,%X3
             
 KF_BNC_LOOP:    BASR    %LR,@KECCAKF@BR
