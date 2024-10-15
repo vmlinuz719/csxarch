@@ -124,30 +124,15 @@ CMD_READ:       LAR     %A,@PROMPT@REL
                 MVR     %A,%SP
                 BASR    %LR,@SCAND@BR
                 
-                MVR     %A,%SP                  ; TODO: do command
-                BASR    %LR,@PRINTD@BR
-                LAR     %A,@NEWLINE@REL
-                BASR    %LR,@PRINTD@BR
+                                                ; TODO: do command
+                
                 
                 XR      %X,%X
                 SCAST   %0,%0,(%SP,%X)
                 
-                SWI     %SP,#20
-                MVR     %A,%X
-                MVR     %X,%SP
-                LWI     %A2,#10
-                LWI     %A3,$10
-                BASR    %LR,@NTOA@BR
-                MVR     %A,%SP
-                SWI     %SP,#18
-                LAR     %A2,@PADDING_SPACES@REL
-                XR      %A3,%A3
-                MVST    %SP,%0,(%A2,%A3)
-                MVR     %X,%SP
-                BASR    %LR,@PADL@BR
-                MVR     %A,%SP
-                BASR    %LR,@PRINTD@BR
-                AWI     %SP,%SP,#38
+                LWI     %A,#1000
+                LWI     %X,$5
+                BASR    %LR,@HEXDUMP@BR
                 
                 AWI     %SP,%SP,#100
                 
@@ -163,8 +148,6 @@ HALT:           LLI     %A,#CCCCCCCCCCCC        ; Operator-requested shutdown
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             ;
             ;   PRINTD - Print ASCII Zero Terminated to debug console
-            ;
-            ;   PROCEDURE PRINTD (S &STRING) INTEGER
             ;
             ;       A:          Address of string
             ;       Returns:    Number of characters printed
@@ -182,6 +165,128 @@ PRINTD_POLL:    LC      %A3,(%A2)
 
 PRINTD_END:     DE      %A,%X
                 RET
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;   HEXDUMP - Dump multiple 16 byte rows of memory to the screen
+            ;
+            ;       A:          Address of first row
+            ;       X:          Number of rows
+            ;       Returns:    None
+            ;
+
+HEXDUMP:        SWI     %SP,$24
+                STM     %A4,%A6,(%SP)
+                PUSH    %LR
+                
+                MVR     %A4,%A
+                MVR     %A5,%X
+                XR      %A6,%A6
+                
+HXD_LOOP:       MVR     %A,%A4
+                BASR    %LR,@HEXROW@BR
+                
+                LAR     %A,@NEWLINE@REL
+                BASR    %LR,@PRINTD@BR
+                
+                AWI     %A4,%A4,$16
+                IN      %A6,%A6
+                BRLT    %A5,%A6,@HXD_LOOP@BR
+                
+                POP     %LR
+                LM      %A4,%A6,(%SP)
+                AWI     %SP,%SP,$24
+                RET
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;   HEXROW - Dump 16 bytes of memory to the screen
+            ;
+            ;       A:          Address of row
+            ;       Returns:    None
+            ;
+
+HEXROW:         PUSH    %A4
+                MVR     %A4,%A
+                PUSH    %A5
+                PUSH    %LR
+                
+                SWI     %SP,#20
+                MVR     %X,%SP
+                LWI     %A2,#10
+                LWI     %A3,#10
+                BASR    %LR,@NTOA@BR
+                
+                MVR     %A,%SP
+                SWI     %SP,#18
+                LAR     %A2,@PADDING_SPACES@REL
+                XR      %A3,%A3
+                MVST    %SP,%0,(%A2,%A3)
+                MVR     %X,%SP
+                BASR    %LR,@PADL@BR
+                
+                MVR     %A,%SP
+                BASR    %LR,@PRINTD@BR
+                
+                LAR     %A,@HEX_SEP@REL
+                BASR    %LR,@PRINTD@BR
+                
+                AWI     %SP,%SP,#38
+                
+                XR      %A5,%A5
+                
+PRT_VALS:       LCTW    %A,(%A4,%A5)
+                SWI     %SP,#8
+                MVR     %X,%SP
+                LWI     %A2,#10
+                LWI     %A3,#10
+                BASR    %LR,@NTOA@BR
+                
+                MVR     %A,%SP
+                SWI     %SP,#8
+                LAR     %A2,@PADDING_FOUR@REL
+                XR      %A3,%A3
+                MVST    %SP,%0,(%A2,%A3)
+                MVR     %X,%SP
+                BASR    %LR,@PADL@BR
+                
+                MVR     %A,%SP
+                BASR    %LR,@PRINTD@BR
+                
+                AWI     %SP,%SP,#10
+                
+                LAR     %A,@SPACE@REL
+                BASR    %LR,@PRINTD@BR
+                
+                BCLT    $16,%A5,@PRT_VALS@BR
+                
+                LAR     %A,@HEX_SEP@REL
+                IN      %A,%A
+                BASR    %LR,@PRINTD@BR
+                
+                XR      %A5,%A5
+                SWI     %SP,#18
+                LWI     %A2,#2E
+                
+PRT_CHRS:       LC      %A,(%A4,%A5)
+                BCLT    $32,%A,@ST_DOT@BR
+                BCGT    $126,%A,@ST_DOT@BR
+                
+ST_CHR:         STCTC   %A,(%SP,%A5)
+                BCLT    $16,%A5,@PRT_CHRS@BR
+
+                STC     %0,(%SP,%A5)
+                MVR     %A,%SP
+                BASR    %LR,@PRINTD@BR
+                
+                AWI     %SP,%SP,#18
+                POP     %LR
+                POP     %A5
+                POP     %A4
+                RET
+
+ST_DOT:         MVR     %A,%A2
+                BR      @ST_CHR@BR
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             ;
@@ -354,7 +459,11 @@ BYTES_OK:       DCS     " bytes OK"
 NEWLINE:        DW      #A00
 PROMPT:         DCS     "> "
                 DC      #0
-PADDING_ZERO:   DCS     "0000000000000000"
+PADDING_ZERO:   DCS     "000000000000"
+PADDING_FOUR:   DCS     "0000"
                 DC      #0
-PADDING_SPACES: DCS     "                "
+PADDING_SPACES: DCS     "               "
+SPACE:          DCS     " "
+                DC      #0
+HEX_SEP:        DCS     " | "
                 DC      #0
