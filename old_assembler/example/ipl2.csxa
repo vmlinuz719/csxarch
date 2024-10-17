@@ -626,6 +626,24 @@ SYSINFO:        PUSH    %LR
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             ;
+            ;   BRAIN: The funny language
+            ;
+
+BRAIN:          PUSH    %LR
+
+                SWI     %SP,$8
+                MVR     %X,%SP
+                MVR     %A,%X2
+                LWI     %A2,$16
+                BASR    %LR,@ATON@BR
+                POP     %A2
+                BREQ    %0,%A,@BRAIN_EXIT@BR
+
+BRAIN_EXIT:     POP     %LR
+                RET
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
             ;   CNSLINTR: Console interrupt handler
             ;
 
