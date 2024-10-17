@@ -101,8 +101,6 @@ HELLO:          LAR     %A,@MODEL@REL
                 AWI     %SP,%SP,#20
                 LAR     %A,@BYTES_OK@REL
                 BASR    %LR,@PRINTD@BR
-                LAR     %A,@NEWLINE@REL
-                BASR    %LR,@PRINTD@BR
                 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             ;
@@ -113,35 +111,176 @@ CMD:            MTCR    %PSW,%0                 ; Ungate interrupts
 
                 LAR     %A,@NEWLINE@REL
                 BASR    %LR,@PRINTD@BR
+                LAR     %A,@READY@REL
+                BASR    %LR,@PRINTD@BR
 
                 LAR     %X,@CMD@REL
                 ST      %X,$8
     
-CMD_READ:       LAR     %A,@PROMPT@REL
+                LLI     %A4,#08090A0B0C0D       ; Whitespace
+                OIHH    %A4,#FFFF
+                LHI     %X3,#10000              ; Initial cursor
+                
+                SWI     %SP,#200
+                
+CMD_LOOP:       LAR     %A,@PROMPT@REL
                 BASR    %LR,@PRINTD@BR
-    
-                SWI     %SP,#100
+                
                 MVR     %A,%SP
                 BASR    %LR,@SCAND@BR
                 
-                                                ; TODO: do command
+                MVR     %X2,%SP                 ; Command index
+
+CMD_PROC:       SKST    %A,%A4,#20(%0,%X2)
+                BREQ    %0,%A,@CMD_LOOP@BR
+                BCEQ    #2E,%A,@CMD_HEXDUMP@BR
+                BCEQ    #27,%A,@CMD_PKSTR@BR
+                BCEQ    #2F,%A,@CMD_SET@BR
+                BCEQ    #3D,%A,@CMD_POKE@BR
+                BCEQ    #3F,%A,@CMD_TELL@BR
+                BCEQ    #52,%A,@CMD_RUN@BR
+                BCEQ    #58,%A,@HALT@BR
+                BCEQ    #5C,%A,@CMD_CLS@BR
+                BR      @UNKNOWN@BR
                 
+CMD_HEXDUMP:    IN      %X2,%X2
+                SKST    %A,%A4,#20(%0,%X2)
+                BREQ    %0,%A,@UNKNOWN@BR
                 
-                XR      %X,%X
-                SCAST   %0,%0,(%SP,%X)
+                SWI     %SP,$8
+                MVR     %X,%SP
+                MVR     %A,%X2
+                LWI     %A2,$16
+                BASR    %LR,@ATON@BR
+                BREQ    %0,%A,@UNKNOWN_1@BR
                 
-                LWI     %A,#1000
-                LWI     %X,$5
+                AR      %X2,%A
+                SKST    %A,%A4,#20(%0,%X2)
+                BRNE    %0,%A,@HEX_NEXT@BR
+                POP     %A
+                LWIS    %A2,#FFF0
+                NR      %A,%A2
+                LSI     %X,%1
                 BASR    %LR,@HEXDUMP@BR
+                BR      @CMD_LOOP@BR
                 
-                AWI     %SP,%SP,#100
+HEX_NEXT:       SWI     %SP,$8
+                MVR     %X,%SP
+                MVR     %A,%X2
+                LWI     %A2,$16
+                BASR    %LR,@ATON@BR
+                BREQ    %0,%A,@UNKNOWN_2@BR
+                POP     %X
+                POP     %A
+                LWIS    %A2,#FFF0
+                NR      %A,%A2
+                BASR    %LR,@HEXDUMP@BR
+                BR      @CMD_LOOP@BR
+
+CMD_TELL:       IN      %X2,%X2
+                SKST    %A,%A4,#20(%0,%X2)
+                BRNE    %0,%A,@UNKNOWN@BR
+
+                SWI     %SP,$24
+                MVR     %X,%SP
+                LWI     %A2,#10
+                MVR     %A3,%A2
+                MVR     %A,%X3
+                BASR    %LR,@NTOA@BR
+                
+                MVR     %A,%SP
+                BASR    %LR,@PRINTD@BR
+                AWI     %SP,%SP,$24
                 
                 LAR     %A,@NEWLINE@REL
                 BASR    %LR,@PRINTD@BR
                 
-                BR      @CMD_READ@BR
+                BR      @CMD_LOOP@BR
+                
+CMD_SET:        IN      %X2,%X2
+                SKST    %A,%A4,#20(%0,%X2)
+                BREQ    %0,%A,@UNKNOWN@BR
 
-HALT:           LLI     %A,#CCCCCCCCCCCC        ; Operator-requested shutdown
+                SWI     %SP,$8
+                MVR     %X,%SP
+                MVR     %A,%X2
+                LWI     %A2,$16
+                BASR    %LR,@ATON@BR
+                POP     %A2
+                BREQ    %0,%A,@UNKNOWN@BR
+                
+                MVR     %X3,%A2
+                AR      %X2,%A
+                
+                BR      @CMD_PROC@BR
+
+CMD_POKE:       IN      %X2,%X2
+                SKST    %A,%A4,#20(%0,%X2)
+                BREQ    %0,%A,@UNKNOWN@BR
+
+POKE_READ:      SWI     %SP,$8
+                MVR     %X,%SP
+                MVR     %A,%X2
+                LWI     %A2,$2
+                BASR    %LR,@ATON@BR
+                POP     %A2
+                BREQ    %0,%A,@UNKNOWN@BR
+                
+                AR      %X2,%A
+                STCTC   %A2,(%0,%X3)
+                SKST    %A,%A4,#20(%0,%X2)
+                BREQ    %0,%A,@CMD_LOOP@BR
+                
+                BR      @POKE_READ@BR
+
+CMD_PKSTR:      IN      %X2,%X2
+                XR      %A2,%A2
+                MVSTR   %X3,%0,(%X2,%A2)
+                AR      %X3,%A2
+                
+                BR      @CMD_LOOP@BR
+
+CMD_CLS:        IN      %X2,%X2
+                SKST    %A,%A4,#20(%0,%X2)
+                BRNE    %0,%A,@UNKNOWN@BR
+                
+                LAR     %A,@CLRSCR@REL
+                BASR    %LR,@PRINTD@BR
+                
+                BR      @CMD_LOOP@BR
+
+CMD_RUN:        IN      %X2,%X2
+                SKST    %0,%A4,#20(%0,%X2)
+                
+                SWI     %SP,$8
+                MVR     %X,%SP
+                MVR     %A,%X2
+                LWI     %A2,$16
+                BASR    %LR,@ATON@BR
+                POP     %A2
+                BREQ    %0,%A,@UNKNOWN@BR
+                
+                SWI     %SP,#78
+                STM     %CT,%X4,(%SP)
+                BASX    %LR,%A2
+                MVR     %X3,%A
+                LM      %CT,%X2,(%SP)
+                L       %X4,#70(%SP)
+                AWI     %SP,%SP,#78
+                BR      @CMD_LOOP@BR
+
+UNKNOWN_2:      POP     %0
+UNKNOWN_1:      POP     %0
+UNKNOWN:        LAR     %A,@SYNTAX_ERR@REL
+                BASR    %LR,@PRINTD@BR
+                MVR     %A,%X2
+                BASR    %LR,@PRINTD@BR
+                LAR     %A,@NEWLINE@REL
+                BASR    %LR,@PRINTD@BR
+                BR      @CMD_LOOP@BR
+
+HALT:           AWI     %SP,%SP,#200
+                LLI     %A,#CCCCCCCCCCCC        ; Operator-requested shutdown
                 OIHH    %A,#6000
                 MTCR    %PSW,%A
 
@@ -452,12 +591,15 @@ CNSLINTR:       STM     %A,%X,@INTR_SAV
 
 DIGITS:         DCS     "0123456789ABCDEF"
 MODEL:          DC      #A
-                DCS     "CSX 896//MV ROM02 | "
+                DCS     "0001I CSX 896//MV ROM02, "
                 DC      #0
 BYTES_OK:       DCS     " bytes OK"
                 DC      #0
+READY:          DCS     "0002I READY"
 NEWLINE:        DW      #A00
 PROMPT:         DCS     "> "
+                DC      #0
+SYNTAX_ERR:     DCS     "0003E Not understood: "
                 DC      #0
 PADDING_ZERO:   DCS     "000000000000"
 PADDING_FOUR:   DCS     "0000"
@@ -466,4 +608,9 @@ PADDING_SPACES: DCS     "               "
 SPACE:          DCS     " "
                 DC      #0
 HEX_SEP:        DCS     " | "
+                DC      #0
+CLRSCR:         DC      #1B
+                DCS     "[1;1H"
+                DC      #1B
+                DCS     "[2J"
                 DC      #0
