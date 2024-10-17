@@ -691,5 +691,5 @@ SERIAL:         DCS     "COMSTAR CSX 896//MV Application Processing Unit"
                 DC      #A
                 DCS     "SERIAL #198400000001"
                 DC      #A
-                DCS     "Assembled in Baltimore, MD, USA"
+                DCS     "Assembled in Ohio"
                 DW      #A00
