@@ -133,8 +133,9 @@ CMD_LOOP:       LAR     %A,@PROMPT@REL
 
 CMD_PROC:       SKST    %A,%A4,#20(%0,%X2)
                 BREQ    %0,%A,@CMD_LOOP@BR
-                BCEQ    #2E,%A,@CMD_HEXDUMP@BR
+                BCEQ    #24,%A,@CMD_STRCMD@BR
                 BCEQ    #27,%A,@CMD_PKSTR@BR
+                BCEQ    #2E,%A,@CMD_HEXDUMP@BR
                 BCEQ    #2F,%A,@CMD_SET@BR
                 BCEQ    #3D,%A,@CMD_POKE@BR
                 BCEQ    #3F,%A,@CMD_TELL@BR
@@ -260,7 +261,7 @@ CMD_RUN:        IN      %X2,%X2
                 POP     %A2
                 BREQ    %0,%A,@UNKNOWN@BR
                 
-                SWI     %SP,#78
+RUN_SAVE:       SWI     %SP,#78
                 STM     %CT,%X4,(%SP)
                 BASX    %LR,%A2
                 MVR     %X3,%A
@@ -268,6 +269,30 @@ CMD_RUN:        IN      %X2,%X2
                 L       %X4,#70(%SP)
                 AWI     %SP,%SP,#78
                 BR      @CMD_LOOP@BR
+
+CMD_STRCMD:     IN      %X2,%X2
+                SKST    %A,%A4,#20(%0,%X2)
+                BREQ    %0,%A,@UNKNOWN@BR
+                
+                LAR     %X,@CMDTAB@REL
+                
+STRCMD_CMP:     XR      %A2,%A2
+                CST     %X2,%0,#20(%X,%A2)
+                LC      %A,(%X2,%A2)
+                XC      %A,(%X,%A2)
+                BCEQ    #20,%A,@STRCMD_DO@BR
+                BREQ    %0,%A,@STRCMD_DO@BR
+                
+                AWI     %X,%X,$16
+                L       %A,(%X)
+                BRNE    %0,%A,@STRCMD_CMP@BR
+                
+                BR      @UNKNOWN@BR
+
+STRCMD_DO:      AR      %X2,%A2
+                SKST    %A,%A4,#20(%0,%X2)
+                L       %A2,$8(%X)
+                BR      @RUN_SAVE@BR
 
 UNKNOWN_2:      POP     %0
 UNKNOWN_1:      POP     %0
@@ -577,6 +602,19 @@ SCAND_BSP2:     BREQ    %0,%X,@SCAND_FLSH2@BR
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             ;
+            ;   IMPLEMENT: Not implemented
+            ;
+
+IMPLEMENT:      PUSH    %LR
+                LAR     %A,@NO_IMPL@REL
+                BASR    %LR,@PRINTD@BR
+                LAR     %A,@NEWLINE@REL
+                BASR    %LR,@PRINTD@BR
+                POP     %LR
+                RET
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
             ;   CNSLINTR: Console interrupt handler
             ;
 
@@ -601,6 +639,8 @@ PROMPT:         DCS     "> "
                 DC      #0
 SYNTAX_ERR:     DCS     "0003E Not understood: "
                 DC      #0
+NO_IMPL:        DCS     "0004E Not implemented"
+                DC      #0
 PADDING_ZERO:   DCS     "000000000000"
 PADDING_FOUR:   DCS     "0000"
                 DC      #0
@@ -614,3 +654,20 @@ CLRSCR:         DC      #1B
                 DC      #1B
                 DCS     "[2J"
                 DC      #0
+            
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;   CMDTAB: Command table
+            ;
+
+                ALIGN   #10
+
+CMDTAB:         DCS     "IPL "
+                ALIGN   #8
+                DL      @IMPLEMENT
+                
+                DCS     "RESET "
+                ALIGN   #8
+                DL      #FFFF000000010000
+                
+                DL      #0
