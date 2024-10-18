@@ -615,17 +615,6 @@ IMPLEMENT:      PUSH    %LR
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             ;
-            ;   SYSINFO: Print info
-            ;
-
-SYSINFO:        PUSH    %LR
-                LAR     %A,@SERIAL@REL
-                BASR    %LR,@PRINTD@BR
-                POP     %LR
-                RET
-
-            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-            ;
             ;   BRAIN: The funny language
             ;
 
@@ -698,3 +687,5 @@ CMDTAB:         DCS     "IPL "
                 DCS     "RESET "
                 ALIGN   #8
                 DL      #FFFF000000010000
+                
+                DL      #0
