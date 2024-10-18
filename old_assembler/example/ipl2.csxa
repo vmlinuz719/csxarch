@@ -695,19 +695,6 @@ CMDTAB:         DCS     "IPL "
                 ALIGN   #8
                 DL      @IMPLEMENT
                 
-                DCS     "BUILD "
-                ALIGN   #8
-                DL      @SYSINFO
-                
                 DCS     "RESET "
                 ALIGN   #8
                 DL      #FFFF000000010000
-                
-                DL      #0
-
-SERIAL:         DCS     "COMSTAR CSX 896//MV Application Processing Unit"
-                DC      #A
-                DCS     "SERIAL #198400000001"
-                DC      #A
-                DCS     "Assembled in Ohio"
-                DW      #A00
