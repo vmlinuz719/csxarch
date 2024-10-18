@@ -614,23 +614,87 @@ IMPLEMENT:      PUSH    %LR
                 BASR    %LR,@PRINTD@BR
                 POP     %LR
                 RET
-
+            
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             ;
-            ;   BRAIN: The funny language
+            ;   IPL_SELECT: Select IPL loader
             ;
 
-BRAIN:          PUSH    %LR
-
+IPL_SELECT:     PUSH    %LR
+                
                 SWI     %SP,$8
                 MVR     %X,%SP
                 MVR     %A,%X2
                 LWI     %A2,$16
                 BASR    %LR,@ATON@BR
                 POP     %A2
-                BREQ    %0,%A,@BRAIN_EXIT@BR
+                BREQ    %0,%A,@UNKNOWN@BR
+                
+                SIO     %A3,%0,%A2,$0
+                BREQ    %0,%A3,@IPL_NODEV@BR
+                
+                LAR     %X,@IPLTAB@REL
+                
+IPL_GETLDR:     L       %A2,(%X)
+                BREQ    %0,%A2,@IPL_NOLDR@BR
+                BRNE    %A3,%A2,@IPL_NEXT@BR
+                
+                PUSH    %X
+                PUSH    %A3
+                LAR     %A,@TRY_LOADER@REL
+                BASR    %LR,@PRINTD@BR
+                
+                POP     %A
+                SWI     %SP,#8
+                MVR     %X,%SP
+                LWI     %A2,#4
+                LWI     %A3,#10
+                BASR    %LR,@NTOA@BR
+                
+                MVR     %A,%SP
+                BASR    %LR,@PRINTD@BR
+                
+                AWI     %SP,%SP,#8
+                
+                LAR     %A,@NEWLINE@REL
+                BASR    %LR,@PRINTD@BR
+                
+                POP     %X
+                L       %A,$8(%X)
+                BASX    %LR,%A
+                
+                BR      @IPL_EXIT@BR
 
-BRAIN_EXIT:     POP     %LR
+IPL_NEXT:       AWI     %X,%X,$16
+                BR      @IPL_GETLDR@BR
+                
+IPL_NOLDR:      PUSH    %A3
+                LAR     %A,@NO_LOADER@REL
+                BASR    %LR,@PRINTD@BR
+                
+                POP     %A
+                SWI     %SP,#8
+                MVR     %X,%SP
+                LWI     %A2,#4
+                LWI     %A3,#10
+                BASR    %LR,@NTOA@BR
+                
+                MVR     %A,%SP
+                BASR    %LR,@PRINTD@BR
+                
+                AWI     %SP,%SP,#8
+                
+                LAR     %A,@NEWLINE@REL
+                BASR    %LR,@PRINTD@BR
+                
+                BR      @IPL_EXIT@BR
+
+IPL_NODEV:      LAR     %A,@NO_DEVICE@REL
+                BASR    %LR,@PRINTD@BR
+                LAR     %A,@NEWLINE@REL
+                BASR    %LR,@PRINTD@BR
+                
+IPL_EXIT:       POP     %LR
                 RET
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -661,6 +725,13 @@ SYNTAX_ERR:     DCS     "0003E Not understood: "
                 DC      #0
 NO_IMPL:        DCS     "0004E Not implemented"
                 DC      #0
+NO_DEVICE:      DCS     "0005E Device not present"
+                DC      #0
+NO_LOADER:      DCS     "0006E No IPL driver for device of type "
+                DC      #0
+TRY_LOADER:     DCS     "0007I Begin Initial Program Load (IPL) "
+                DCS     "from device of type "
+                DC      #0
 PADDING_ZERO:   DCS     "000000000000"
 PADDING_FOUR:   DCS     "0000"
                 DC      #0
@@ -684,10 +755,22 @@ CLRSCR:         DC      #1B
 
 CMDTAB:         DCS     "IPL "
                 ALIGN   #8
-                DL      @IMPLEMENT
+                DL      @IPL_SELECT
                 
                 DCS     "RESET "
                 ALIGN   #8
                 DL      #FFFF000000010000
+                
+                DL      #0
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;   IPLTAB: Device model/IPL loader table
+            ;
+
+                ALIGN   #10
+                
+IPLTAB:         DL      #4010
+                DL      @IMPLEMENT
                 
                 DL      #0
