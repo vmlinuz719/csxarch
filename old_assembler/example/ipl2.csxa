@@ -277,11 +277,12 @@ CMD_STRCMD:     IN      %X2,%X2
                 LAR     %X,@CMDTAB@REL
                 
 STRCMD_CMP:     XR      %A2,%A2
-                CST     %X2,%0,#20(%X,%A2)
+                XR      %A3,%A3
+                SCAST   %0,%0,#20(%X,%A3)
+                CST     %X2,%A3,(%X,%A2)
                 LC      %A,(%X2,%A2)
-                XC      %A,(%X,%A2)
-                BCEQ    #20,%A,@STRCMD_DO@BR
-                BREQ    %0,%A,@STRCMD_DO@BR
+                LC      %A3,(%X,%A2)
+                BREQ    %A3,%A,@STRCMD_DO@BR
                 
                 AWI     %X,%X,$16
                 L       %A,(%X)
@@ -289,8 +290,9 @@ STRCMD_CMP:     XR      %A2,%A2
                 
                 BR      @UNKNOWN@BR
 
-STRCMD_DO:      AR      %X2,%A2
-                SKST    %A,%A4,#20(%0,%X2)
+STRCMD_DO:      AER     %X2,%X2,%A2,$1
+                SKST    %0,%A4,#20(%0,%X2)
+                MVR     %A,%X2
                 L       %A2,$8(%X)
                 BR      @RUN_SAVE@BR
 
