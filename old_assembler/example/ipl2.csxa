@@ -100,7 +100,7 @@ HELLO:          LAR     %A,@MODEL@REL
                 BASR    %LR,@PRINTD@BR
                 AWI     %SP,%SP,#20
                 LAR     %A,@BYTES_OK@REL
-                BASR    %LR,@PRINTD@BR
+                BASR    %LR,@PRINTDLN@BR
                 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             ;
@@ -109,8 +109,6 @@ HELLO:          LAR     %A,@MODEL@REL
                 
 CMD:            MTCR    %PSW,%0                 ; Ungate interrupts
 
-                LAR     %A,@NEWLINE@REL
-                BASR    %LR,@PRINTD@BR
                 LAR     %A,@READY@REL
                 BASR    %LR,@PRINTD@BR
 
@@ -190,11 +188,8 @@ CMD_TELL:       IN      %X2,%X2
                 BASR    %LR,@NTOA@BR
                 
                 MVR     %A,%SP
-                BASR    %LR,@PRINTD@BR
+                BASR    %LR,@PRINTDLN@BR
                 AWI     %SP,%SP,$24
-                
-                LAR     %A,@NEWLINE@REL
-                BASR    %LR,@PRINTD@BR
                 
                 BR      @CMD_LOOP@BR
                 
@@ -301,9 +296,7 @@ UNKNOWN_1:      POP     %0
 UNKNOWN:        LAR     %A,@SYNTAX_ERR@REL
                 BASR    %LR,@PRINTD@BR
                 MVR     %A,%X2
-                BASR    %LR,@PRINTD@BR
-                LAR     %A,@NEWLINE@REL
-                BASR    %LR,@PRINTD@BR
+                BASR    %LR,@PRINTDLN@BR
                 BR      @CMD_LOOP@BR
 
 HALT:           AWI     %SP,%SP,#200
@@ -330,6 +323,24 @@ PRINTD_POLL:    LC      %A3,(%A2)
                 BR      @PRINTD_POLL@BR
 
 PRINTD_END:     DE      %A,%X
+                RET
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;   PRINTDLN - Print to debug console followed by new line
+            ;
+            ;       A:          Address of string
+            ;       Returns:    None
+            ;
+
+PRINTDLN:       PUSH    %LR
+
+                BASR    %LR,@PRINTD@BR
+                
+                LAR     %A,@NEWLINE@REL
+                BASR    %LR,@PRINTD@BR
+
+                POP     %LR
                 RET
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -609,9 +620,7 @@ SCAND_BSP2:     BREQ    %0,%X,@SCAND_FLSH2@BR
 
 IMPLEMENT:      PUSH    %LR
                 LAR     %A,@NO_IMPL@REL
-                BASR    %LR,@PRINTD@BR
-                LAR     %A,@NEWLINE@REL
-                BASR    %LR,@PRINTD@BR
+                BASR    %LR,@PRINTDLN@BR
                 POP     %LR
                 RET
             
@@ -653,12 +662,9 @@ IPL_GETLDR:     L       %A2,(%X)
                 BASR    %LR,@NTOA@BR
                 
                 MVR     %A,%SP
-                BASR    %LR,@PRINTD@BR
+                BASR    %LR,@PRINTDLN@BR
                 
                 AWI     %SP,%SP,#8
-                
-                LAR     %A,@NEWLINE@REL
-                BASR    %LR,@PRINTD@BR
                 
                 POP     %X
                 POP     %A2
@@ -683,19 +689,14 @@ IPL_NOLDR:      POP     %0
                 BASR    %LR,@NTOA@BR
                 
                 MVR     %A,%SP
-                BASR    %LR,@PRINTD@BR
+                BASR    %LR,@PRINTDLN@BR
                 
                 AWI     %SP,%SP,#8
-                
-                LAR     %A,@NEWLINE@REL
-                BASR    %LR,@PRINTD@BR
                 
                 BR      @IPL_EXIT@BR
 
 IPL_NODEV:      LAR     %A,@NO_DEVICE@REL
-                BASR    %LR,@PRINTD@BR
-                LAR     %A,@NEWLINE@REL
-                BASR    %LR,@PRINTD@BR
+                BASR    %LR,@PRINTDLN@BR
                 
 IPL_EXIT:       POP     %LR
                 RET
@@ -731,15 +732,39 @@ IPL_4010:       PUSH    %LR
                 STH     %A3,$12(%SP)
                 XIO     %SP,%0,%A2,$0
                 BASR    %A3,@I4010_DWAIT@BR
+                
+                LW      %A,$10(%SP)
+                BRCI    %A,%0,@I4010_ERROR@BR
 
-                ; TODO: Check for errors and actually boot
+                LAR     %A,@IPL_GOOD@REL
+                BASR    %LR,@PRINTDLN@BR
+                
+                LWI     %A,$2000
+                BASX    %LR,%A
 
                 BR      @I4010_EXIT@BR
                 
+I4010_ERROR:    PUSH    %A
+
+                LAR     %A,@IPL_FAIL@REL
+                BASR    %LR,@PRINTD@BR
+
+                POP     %A
+                SWI     %SP,#8
+                MVR     %X,%SP
+                LWI     %A2,#6
+                LWI     %A3,$10
+                BASR    %LR,@NTOA@BR
+                
+                MVR     %A,%SP
+                BASR    %LR,@PRINTDLN@BR
+                
+                AWI     %SP,%SP,#8
+                
+                BR      @I4010_EXIT@BR
+                
 I4010_NOMED:    LAR     %A,@NO_MEDIA@REL
-                BASR    %LR,@PRINTD@BR
-                LAR     %A,@NEWLINE@REL
-                BASR    %LR,@PRINTD@BR
+                BASR    %LR,@PRINTDLN@BR
                 BR      @I4010_EXIT@BR
                 
 I4010_EXIT:     AWI     %SP,%SP,$24
@@ -786,6 +811,10 @@ TRY_LOADER:     DCS     "0007I Begin Initial Program Load (IPL) "
                 DCS     "from device of type "
                 DC      #0
 NO_MEDIA:       DCS     "0008E Media not ready"
+                DC      #0
+IPL_FAIL:       DCS     "0009E IPL FAILED with error "
+                DC      #0
+IPL_GOOD:       DCS     "0010I IPL OK"
                 DC      #0
 PADDING_ZERO:   DCS     "000000000000"
 PADDING_FOUR:   DCS     "0000"
