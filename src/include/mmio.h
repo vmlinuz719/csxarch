@@ -19,7 +19,7 @@ typedef struct {
     uint64_t (*sense)
         (void *, int /* reg */);
     uint64_t (*command)
-        (void *, uint64_t /* command */, em3_access_error_t *);
+        (void *, int /* reg */, uint64_t /* command */, em3_access_error_t *);
     void (*destroy) (void *);
 } mmio_unit_t;
 

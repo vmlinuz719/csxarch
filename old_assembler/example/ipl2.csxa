@@ -640,6 +640,7 @@ IPL_GETLDR:     L       %A2,(%X)
                 BRNE    %A3,%A2,@IPL_NEXT@BR
                 
                 PUSH    %X
+                PUSH    %A2
                 PUSH    %A3
                 LAR     %A,@TRY_LOADER@REL
                 BASR    %LR,@PRINTD@BR
@@ -659,6 +660,7 @@ IPL_GETLDR:     L       %A2,(%X)
                 LAR     %A,@NEWLINE@REL
                 BASR    %LR,@PRINTD@BR
                 
+                POP     %A2
                 POP     %X
                 L       %A,$8(%X)
                 BASX    %LR,%A
@@ -732,6 +734,8 @@ NO_LOADER:      DCS     "0006E No IPL driver for device of type "
 TRY_LOADER:     DCS     "0007I Begin Initial Program Load (IPL) "
                 DCS     "from device of type "
                 DC      #0
+NO_MEDIA:       DCS     "0008E Media not ready"
+                DC      #0
 PADDING_ZERO:   DCS     "000000000000"
 PADDING_FOUR:   DCS     "0000"
                 DC      #0
@@ -745,7 +749,7 @@ CLRSCR:         DC      #1B
                 DC      #1B
                 DCS     "[2J"
                 DC      #0
-            
+
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             ;
             ;   CMDTAB: Command table

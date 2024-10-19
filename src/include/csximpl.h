@@ -123,6 +123,7 @@ void inst_page_map_block(em3_regs_t *r, uint64_t i);
 
 // Channel Block
 void inst_SSCH(em3_regs_t *r, uint64_t i);
+void inst_XIO(em3_regs_t *r, uint64_t i);
 
 // Branch Block
 void inst_BAS(em3_regs_t *r, uint64_t i);

@@ -148,6 +148,7 @@ void inst_ex(em3_regs_t *r, uint64_t i) {
 
         // Channel Block
         case 0xA3:  inst_SSCH           (r, i); break;
+        case 0xA4:  inst_XIO            (r, i); break;
 
         // Branch Block
         case 0xB0:  inst_BAS            (r, i); break;

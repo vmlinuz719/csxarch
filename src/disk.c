@@ -443,6 +443,32 @@ void disk_write
     }
 }
 
+uint64_t disk_command
+        (void *ctx, int reg, uint64_t data, em3_access_error_t *e) {
+    disk_ctx_t *disk_ctx = (disk_ctx_t *) ctx;
+
+    if (reg == 1) {
+        disk_ctx->irq = (data >> 8) & 0xF;
+        disk_ctx->vec = data & 0x3F;
+    } else if (reg == 0) {
+        if (!pthread_mutex_trylock(&(disk_ctx->cmd_mutex))) {
+            disk_ctx->cmd_address = data;
+            disk_ctx->ready = 0;
+            disk_ctx->attn = 0;
+            pthread_create(
+                &(disk_ctx->cmd_thread),
+                NULL,
+                command_thread,
+                disk_ctx
+            );
+        } else {
+            *e = BUS_ERROR;
+        }
+    } else {
+        *e = BUS_ERROR;
+    }
+}
+
 uint64_t disk_sense(void *ctx, int reg) {
     disk_ctx_t *disk_ctx = (disk_ctx_t *) ctx;
 
@@ -482,7 +508,7 @@ void init_disk(mmio_unit_t *u, em3_regs_t *cpu) {
     u->read = disk_read;
     u->write = disk_write;
     u->sense = disk_sense;
-    u->command = NULL;
+    u->command = disk_command;
     u->destroy = destroy_disk;
     
     ctx->cpu = cpu;

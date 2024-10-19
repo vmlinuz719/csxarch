@@ -211,6 +211,7 @@ struct opcode_def opcodes[] = {
     {   "EVLA",     0xA20,      assemble_type_ri_0  },
 
     {   "SIO",      0xA3,       assemble_type_rm_alt},
+    {   "XIO",      0xA4,       assemble_type_rm_alt},
     
     {   "B",        0xB0,       assemble_type_rb    },
     {   "BAS",      0xB0,       assemble_type_rm    },
