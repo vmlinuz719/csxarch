@@ -869,9 +869,20 @@ IPLTAB:         DL      #4010
                 
                 DL      #0
 
-CREDITS:        DCS     "(Over)Engineered by github.com/vmlinuz719/"
+CREDITS:        DCS     "                 "
+                DCS     "  ___ _____  __  ___ ___  __   ____  ____   __"
                 DC      #A
-                DCS     "Thank you @w1aw, @jack23247 and Hercules"
+                DCS     "                 "
+                DCS     " / __/ __\ \/ / ( _ ) _ \/ /  / /  \/  \ \ / /"
+                DC      #A
+                DCS     "                 "
+                DCS     "| (__\__ \>  <  / _ \_, / _ \/ /| |\/| |\ V / "
+                DC      #A
+                DCS     "                 "
+                DCS     " \___|___/_/\_\ \___//_/\___/_/ |_|  |_| \_/  "
+                DC      #A
+                DC      #A
+                DCS     "(Over)Engineered by github.com/vmlinuz719/"
                 DC      #A
                 DCS     "We made CSX, They fsck(8)ed it up"
                 DC      #0
