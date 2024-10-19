@@ -10,15 +10,10 @@ ROM_BASE:       XR      %A,%A                   ; Gate external interrupts
                 OIHH    %A,#4000
                 MTCR    %PSW,%A
 
+                XR      %A2,%A2
                 LAR     %A,@ROM_BASE@REL        ; Initialize all handlers
-                ST      %A,$0                   ; - reset on exception
-                ST      %A,$8
-                ST      %A,$16
-                ST      %A,$24
-                ST      %A,$32
-                ST      %A,$40
-                ST      %A,$48
-                ST      %A,$56
+VEC_INIT:       STCT    %A,(%0,%A2)             ; - reset on exception
+                BCLE    $56,%A2,@VEC_INIT@BR
 
                 LAR     %X,@IPI_INIT@REL
                 LWI     %X2,#1000               ; Address low memory
@@ -623,7 +618,18 @@ IMPLEMENT:      PUSH    %LR
                 BASR    %LR,@PRINTDLN@BR
                 POP     %LR
                 RET
-            
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;   PCREDS: Roll the credits!
+            ;
+
+PCREDS:         PUSH    %LR
+                LAR     %A,@CREDITS@REL
+                BASR    %LR,@PRINTDLN@BR
+                POP     %LR
+                RET
+
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             ;
             ;   IPL_SELECT: Select IPL loader
@@ -835,7 +841,7 @@ CLRSCR:         DC      #1B
             ;   CMDTAB: Command table
             ;
 
-                ALIGN   #10
+                ALIGN   #100
 
 CMDTAB:         DCS     "IPL "
                 ALIGN   #8
@@ -845,6 +851,10 @@ CMDTAB:         DCS     "IPL "
                 ALIGN   #8
                 DL      #FFFF000000010000
                 
+                DCS     "CREDITS "
+                ALIGN   #8
+                DL      @PCREDS
+                
                 DL      #0
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -852,9 +862,16 @@ CMDTAB:         DCS     "IPL "
             ;   IPLTAB: Device model/IPL loader table
             ;
 
-                ALIGN   #10
+                ALIGN   #100
                 
 IPLTAB:         DL      #4010
                 DL      @IPL_4010
                 
                 DL      #0
+
+CREDITS:        DCS     "(Over)Engineered by github.com/vmlinuz719/"
+                DC      #A
+                DCS     "Thank you @w1aw, @jack23247 and Hercules"
+                DC      #A
+                DCS     "We made CSX, They fsck(8)ed it up"
+                DC      #0
