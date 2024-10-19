@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdio.h>
 #include "csx.h"
 #include "csximpl.h"
 
@@ -12,8 +13,7 @@ void inst_SSCH(em3_regs_t *r, uint64_t i) {
 
     int rd = RR_RD(i);
 
-    uint64_t channel =
-        + get_reg(r, RM_RX(i))
+    uint64_t channel = get_reg(r, RM_RX(i))
         + RM_I12(i);
     
     int reg = RM_RB(i);
@@ -47,10 +47,8 @@ void inst_XIO(em3_regs_t *r, uint64_t i) {
 
     int rd = RR_RD(i);
 
-    uint64_t channel =
-        + get_reg(r, RM_RX(i))
+    uint64_t channel = get_reg(r, RM_RX(i))
         + RM_I12(i);
-
     
     int reg = RM_RB(i);
 

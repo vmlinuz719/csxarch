@@ -634,13 +634,13 @@ IPL_SELECT:     PUSH    %LR
                 BREQ    %0,%A3,@IPL_NODEV@BR
                 
                 LAR     %X,@IPLTAB@REL
+                PUSH    %A2
                 
 IPL_GETLDR:     L       %A2,(%X)
                 BREQ    %0,%A2,@IPL_NOLDR@BR
                 BRNE    %A3,%A2,@IPL_NEXT@BR
                 
                 PUSH    %X
-                PUSH    %A2
                 PUSH    %A3
                 LAR     %A,@TRY_LOADER@REL
                 BASR    %LR,@PRINTD@BR
@@ -660,8 +660,8 @@ IPL_GETLDR:     L       %A2,(%X)
                 LAR     %A,@NEWLINE@REL
                 BASR    %LR,@PRINTD@BR
                 
-                POP     %A2
                 POP     %X
+                POP     %A2
                 L       %A,$8(%X)
                 BASX    %LR,%A
                 
@@ -670,7 +670,8 @@ IPL_GETLDR:     L       %A2,(%X)
 IPL_NEXT:       AWI     %X,%X,$16
                 BR      @IPL_GETLDR@BR
                 
-IPL_NOLDR:      PUSH    %A3
+IPL_NOLDR:      POP     %0
+                PUSH    %A3
                 LAR     %A,@NO_LOADER@REL
                 BASR    %LR,@PRINTD@BR
                 
@@ -698,6 +699,56 @@ IPL_NODEV:      LAR     %A,@NO_DEVICE@REL
                 
 IPL_EXIT:       POP     %LR
                 RET
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;   IPL_4010: CSX 4010 Disk Controller IPL driver
+            ;
+            
+IPL_4010:       PUSH    %LR
+
+                XIO     %0,%1,%A2,$0
+                
+                SWI     %SP,$24
+                
+                LA      %A3,$16(%SP)
+                ST      %A3,(%SP)
+                ST      %0,(%A3)
+                LHI     %A3,#01000000           ; TODO: LUN select
+                STH     %A3,$8(%SP)
+                XIO     %SP,%0,%A2,$0
+                BASR    %A3,@I4010_DWAIT@BR
+                
+                L       %A,$16(%SP)
+                BREQ    %0,%A,@I4010_NOMED@BR
+                
+                STH     %0,(%SP)
+                LWI     %A3,#2000
+                STH     %A3,$4(%SP)
+                LHI     %A3,#04000000
+                STH     %A3,$8(%SP)
+                LWI     %A3,#0001
+                STH     %A3,$12(%SP)
+                XIO     %SP,%0,%A2,$0
+                BASR    %A3,@I4010_DWAIT@BR
+
+                ; TODO: Check for errors and actually boot
+
+                BR      @I4010_EXIT@BR
+                
+I4010_NOMED:    LAR     %A,@NO_MEDIA@REL
+                BASR    %LR,@PRINTD@BR
+                LAR     %A,@NEWLINE@REL
+                BASR    %LR,@PRINTD@BR
+                BR      @I4010_EXIT@BR
+                
+I4010_EXIT:     AWI     %SP,%SP,$24
+                POP     %LR
+                RET
+
+I4010_DWAIT:    SIO     %A,%1,%A2,$0
+                BRCI    %A,%1,@I4010_DWAIT@BR
+                BX      %A3
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             ;
@@ -775,6 +826,6 @@ CMDTAB:         DCS     "IPL "
                 ALIGN   #10
                 
 IPLTAB:         DL      #4010
-                DL      @IMPLEMENT
+                DL      @IPL_4010
                 
                 DL      #0
