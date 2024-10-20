@@ -39,6 +39,8 @@ int assemble_type_rm_st(struct parser_ctx *ctx, int opcode, int pass);
 
 int assemble_type_rm_alt(struct parser_ctx *ctx, int opcode, int pass);
 
+int assemble_type_rmb(struct parser_ctx *ctx, int opcode, int pass);
+
 int assemble_type_rb(struct parser_ctx *ctx, int opcode, int pass);
 
 int assemble_type_rw(struct parser_ctx *ctx, int opcode, int pass);

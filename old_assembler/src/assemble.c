@@ -214,7 +214,7 @@ struct opcode_def opcodes[] = {
     {   "XIO",      0xA4,       assemble_type_rm_alt},
     
     {   "B",        0xB0,       assemble_type_rb    },
-    {   "BAS",      0xB0,       assemble_type_rm    },
+    {   "BAS",      0xB0,       assemble_type_rmb   },
     
     {   "BR",       0xB1,       assemble_type_wb    },
     {   "BASR",     0xB1,       assemble_type_rw    },
@@ -786,6 +786,49 @@ int assemble_type_rm(struct parser_ctx *ctx, int opcode, int pass) {
 }
 
 
+int assemble_type_rmb(struct parser_ctx *ctx, int opcode, int pass) {
+    uint32_t result = 0;
+
+    int d1 = read_reg_literal(ctx); if (d1 < 0) return d1;
+    
+    uint64_t i1;
+    int b1, x1;
+    int address_status = read_address(
+        ctx,
+        &i1, 8191,
+        &b1, &x1,
+        pass
+    );
+    if (address_status) return address_status;
+
+    i1 >>= 1;
+
+    result |= opcode << 24;
+    result |= (d1 & 0xF) << 20;
+    result |= b1 >= 0 ? (b1 & 0xF) << 16 : 0;
+    result |= x1 >= 0 ? (x1 & 0xF) << 12 : 0;
+    result |= i1 & 0xFFF;
+
+    if (pass) {
+        fputc((result & 0xFF000000) >> 24, ctx->out);
+        fputc((result & 0xFF0000) >> 16, ctx->out);
+        fputc((result & 0xFF00) >> 8, ctx->out);
+        fputc(result & 0xFF, ctx->out);
+    }
+
+    ctx->current_pc += 4;
+
+#ifdef TEST_PARSEVT
+    char re0 = (result & 0xFF000000) >> 24;
+    char re1 = (result & 0xFF0000) >> 16;
+    char re2 = (result & 0xFF00) >> 8;
+    char re3 = result & 0xFF;
+    printf("Debug: RM %02hhx %02hhx %02hhx %02hhx\n", re0, re1, re2, re3);
+#endif
+
+    return 0;
+}
+
 int assemble_type_rm_lm(struct parser_ctx *ctx, int opcode, int pass) {
     uint32_t result = 0;
 
@@ -1037,11 +1080,13 @@ int assemble_type_rb(struct parser_ctx *ctx, int opcode, int pass) {
     int b1, x1;
     int address_status = read_address(
         ctx,
-        &i1, 4095,
+        &i1, 8191,
         &b1, &x1,
         pass
     );
     if (address_status) return address_status;
+    
+    i1 >>= 1;
 
     result |= opcode << 24;
     result |= b1 >= 0 ? (b1 & 0xF) << 16 : 0;

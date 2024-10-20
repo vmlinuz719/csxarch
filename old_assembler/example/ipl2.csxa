@@ -745,7 +745,7 @@ IPL_4010:       PUSH    %LR
                 LAR     %A,@IPL_GOOD@REL
                 BASR    %LR,@PRINTDLN@BR
                 
-                LWI     %A,$2000
+                LWI     %A,#2000
                 BASX    %LR,%A
 
                 BR      @I4010_EXIT@BR

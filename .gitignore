@@ -52,5 +52,3 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
-# Big disk image (may or may not contain the entire bee movie script)
-ipl.img
