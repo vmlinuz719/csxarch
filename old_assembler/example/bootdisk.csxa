@@ -29,7 +29,9 @@ IPL_MAIN:       PUSH    %LR
                 POP     %LR
                 RET
 
-HELLO:          DCS     "       ======== CSX 896/MV SELF-TEST DISKETTE ========"
+HELLO:          DC      #A
+                DCS     "                "
+                DCS     "======== CSX 896/MV SELF-TEST DISKETTE ========"
                 DW      #A0A
                 DCS     "This is merely included as a demonstration of the IPL "
                 DCS     "command"
