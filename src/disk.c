@@ -271,6 +271,7 @@ uint64_t do_cmd_write(disk_ctx_t *disk_ctx, disk_cmd_hdr_t *c, uint64_t *next) {
     }
     
     int write = fwrite(blk_buf, 1, disk_ctx->lun[c->lun].sector_size, fp);
+    fflush(fp);
     
     if (feof(fp) || write < disk_ctx->lun[c->lun].sector_size) {
         result = DISK_RC_SECTOR_OVERRUN;
