@@ -199,6 +199,38 @@ void inst_EDC(em3_regs_t *r, uint64_t i) {
 
     uint64_t a = get_reg(r, RR_RD(i));
     uint64_t b = get_reg(r, RR_RS(i));
+    
+    if (a & 0x8000000000000000) {
+        if (b & 0x8000000000000000) {
+            a = bcd_sub(a, 0xF - (b >> 60));
+            b |= 0xF000000000000000;
+        }
+        
+        else {
+            a = bcd_add(a, 0x1 + (b >> 60));
+            if (a & 0x8000000000000000) {
+                b |= 0xF000000000000000;
+            } else {
+                b &= 0x0FFFFFFFFFFFFFFF;
+            }
+        }
+    } else {
+        if (b & 0x8000000000000000) {
+            a = bcd_sub(a, 0x10 - (b >> 60));
+            if (a & 0x8000000000000000) {
+                b |= 0xF000000000000000;
+            } else {
+                b &= 0x0FFFFFFFFFFFFFFF;
+            }
+        }
+        
+        else {
+            a = bcd_add(a, b >> 60);
+            b &= 0x0FFFFFFFFFFFFFFF;
+        }
+    }
+    
+    /*
 
     if ((b & 0xF000000000000000) == 0x1000000000000000) {
         b &= 0x0FFFFFFFFFFFFFFF;
@@ -209,6 +241,8 @@ void inst_EDC(em3_regs_t *r, uint64_t i) {
         b = bcd_add(0x1000000000000000, b);
         a = bcd_sub(a, 1);
     }
+    
+    */
 
     set_reg(r, RR_RD(i), a);
     set_reg(r, RR_RS(i), b);
