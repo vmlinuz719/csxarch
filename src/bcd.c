@@ -72,3 +72,10 @@ uint64_t bcd_trunc7(uint64_t x) {
     else return x & 0x0FFFFFFF;
 }
 
+uint64_t new_bcd_add(uint64_t a, uint64_t b, uint64_t *carry) {
+    uint64_t result_lo32 = bcd_add(a, bcd_add(b, *carry));
+    uint64_t result_hi32 = bcd_add(a >> 32, bcd_add(b >> 32, result_lo32 >> 32));
+    *carry = result_hi32 >> 32;
+    return (result_hi32 << 32) | (result_lo32 & 0xFFFFFFFF);
+}
+
