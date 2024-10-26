@@ -14,7 +14,6 @@
 #include "error.h"
 #include "console.h"
 #include "disk.h"
-#include "bcd.h"
 #include "csx.h"
 #include "csximpl.h"
 
@@ -753,7 +752,7 @@ static const uint8_t jeff[] = {
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, // 5x
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, // 6x
     0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 7x
-    1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 8x
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 8x
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 9x
     0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // Ax
     1, 1, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // Bx
@@ -949,6 +948,7 @@ void cpu_run(em3_regs_t *r) {
 
 int main(int argc, char *argv[]) {
     em3_regs_t r; r.pc = 0xFFFF000000010000;
+    
     pthread_mutex_init(&(r.intr_lock), NULL);
     pthread_mutex_init(&(r.cas_lock), NULL);
     pthread_cond_init(&(r.wake), NULL);

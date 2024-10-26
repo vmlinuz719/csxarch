@@ -99,23 +99,6 @@ void inst_LCR(em3_regs_t *r, uint64_t i);
 void inst_STCR(em3_regs_t *r, uint64_t i);
 void inst_REX(em3_regs_t *r, uint64_t i);
 
-// Standard Decimal Block
-void inst_LDHS(em3_regs_t *r, uint64_t i);
-void inst_ADH(em3_regs_t *r, uint64_t i);
-void inst_ADHS(em3_regs_t *r, uint64_t i);
-void inst_SDH(em3_regs_t *r, uint64_t i);
-void inst_SDHS(em3_regs_t *r, uint64_t i);
-void inst_AD(em3_regs_t *r, uint64_t i);
-void inst_SD(em3_regs_t *r, uint64_t i);
-void inst_CD(em3_regs_t *r, uint64_t i);
-void inst_CB(em3_regs_t *r, uint64_t i);
-void inst_CDS(em3_regs_t *r, uint64_t i);
-void inst_CLDHS(em3_regs_t *r, uint64_t i);
-void inst_ADR(em3_regs_t *r, uint64_t i);
-void inst_SDR(em3_regs_t *r, uint64_t i);
-void inst_NED(em3_regs_t *r, uint64_t i);
-void inst_EDC(em3_regs_t *r, uint64_t i);
-
 // Address Translation Control Block
 void inst_MFPM(em3_regs_t *r, uint64_t i);
 void inst_MTPM(em3_regs_t *r, uint64_t i);

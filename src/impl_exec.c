@@ -124,23 +124,6 @@ void inst_ex(em3_regs_t *r, uint64_t i) {
         case 0x73:  inst_STCR           (r, i); break;
         case 0x74:  inst_REX            (r, i); break;
 
-        // Standard Decimal Block
-        case 0x80:  inst_LDHS           (r, i); break;
-        case 0x81:  inst_ADH            (r, i); break;
-        case 0x82:  inst_ADHS           (r, i); break;
-        case 0x83:  inst_SDH            (r, i); break;
-        case 0x84:  inst_SDHS           (r, i); break;
-        case 0x85:  inst_AD             (r, i); break;
-        case 0x86:  inst_SD             (r, i); break;
-        case 0x87:  inst_CD             (r, i); break;
-        case 0x88:  inst_CB             (r, i); break;
-        case 0x89:  inst_CDS            (r, i); break;
-        case 0x8A:  inst_CLDHS          (r, i); break;
-        case 0x8B:  inst_ADR            (r, i); break;
-        case 0x8C:  inst_SDR            (r, i); break;
-        case 0x8D:  inst_NED            (r, i); break;
-        case 0x8E:  inst_EDC            (r, i); break;
-
         // Address Translation Control Block
         case 0xA0:  inst_MFPM           (r, i); break;
         case 0xA1:  inst_MTPM           (r, i); break;
