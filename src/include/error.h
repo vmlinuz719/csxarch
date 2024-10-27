@@ -8,7 +8,8 @@ typedef enum {
     ERR_ALIGN,
     ILLEGAL_INSTRUCTION,
     PRIVILEGE_VIOLATION,
-    DIVIDE_BY_ZERO
+    DIVIDE_BY_ZERO,
+    DECIMAL_FORMAT
 } em3_access_error_t;
 
 #endif
