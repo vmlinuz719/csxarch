@@ -44,6 +44,15 @@ uint64_t csx2tc(uint64_t i) {
     }
 }
 
+uint64_t csx2valid(uint64_t i) {
+    uint64_t d = i >> 60;
+    if (d < 0xB && d >= 0x5) {
+        return 0xFFFFFFFFFFFFFFFF;
+    } else {
+        return csx2tc(i);
+    }
+}
+
 uint64_t bcd_add(uint64_t a, uint64_t b, uint64_t *carry) {
     uint64_t result_lo32 = old_bcd_add(a & 0xFFFFFFFF, old_bcd_add(b & 0xFFFFFFFF, *carry));
     uint64_t result_hi32 = old_bcd_add(a >> 32, old_bcd_add(b >> 32, result_lo32 >> 32));

@@ -190,6 +190,8 @@ struct opcode_def opcodes[] = {
     {   "REX",      0x74,       assemble_type_none  },
     {   "SVC",      0x74,       assemble_type_ic    },
 
+    {   "ADR",      0x80,       assemble_type_rm_alt},
+
     {   "MFPM",     0xA0,       assemble_type_rr    },
     {   "MTPM",     0xA1,       assemble_type_rr    },
     {   "EVLA",     0xA20,      assemble_type_ri_0  },
