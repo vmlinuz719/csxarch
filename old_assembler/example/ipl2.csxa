@@ -28,7 +28,8 @@ IPI_INIT:
                 MARK    #200    INTR_SAV:
                 
                 MARK    #210    MEMORY:
-                MARK    #218    CONSOLE:
+                MARK    #218    MEMORY_DEC:
+                MARK    #220    CONSOLE:
 
                 MARK    #1000
 
@@ -38,6 +39,7 @@ IPI_INIT:
             ;
             
 MEMTEST:        XR      %A,%A                   ; Initialize counters
+                XR      %A3,%A3
                 
                 L       %A2,$24
                 LAR     %X,@MT_END@REL          ; Set bus error handler
@@ -45,10 +47,12 @@ MEMTEST:        XR      %A,%A                   ; Initialize counters
                 
 MT_COUNT:       L       %0,(%A)
                 AWI     %A,%A,$8
+                ADR     %A3,%0,%0,$8
                 BR      @MT_COUNT@BR
                 
 MT_END:         ST      %A2,$24                 ; Reset bus error handler
                 ST      %A,@MEMORY              ; Save memory amount
+                ST      %A3,@MEMORY_DEC         ; Save memory amount, decimal
                 MVR     %SP,%A                  ; Set save area stack
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

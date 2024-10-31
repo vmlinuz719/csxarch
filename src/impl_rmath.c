@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdio.h>
 #include "csx.h"
 #include "csximpl.h"
 #include "bcd.h"
@@ -218,6 +219,7 @@ void inst_ADR(em3_regs_t *r, uint64_t i) {
     uint64_t d = csx2valid(RM_I12(i));
 
     if (!(bcd_valid(x) && bcd_valid(y) && bcd_valid(d))) {
+        r->increment = 0;
         error(r, DECIMAL_FORMAT);
         return;
     }
@@ -233,4 +235,5 @@ void inst_ADR(em3_regs_t *r, uint64_t i) {
     
     set_reg(r, RM_RD(i), tc2csx(x));
     set_reg(r, RM_RX(i), c);
+    r->increment = 4;
 }

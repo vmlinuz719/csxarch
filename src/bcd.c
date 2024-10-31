@@ -13,7 +13,7 @@ int old_bcd_valid(uint64_t x) {
 }
 
 int bcd_valid(uint64_t x) {
-    return old_bcd_valid(x >> 32) && old_bcd_valid(x & 0xFFFFFFFF);
+    return !(old_bcd_valid(x >> 32) || old_bcd_valid(x & 0xFFFFFFFF));
 }
 
 uint64_t old_bcd_add(uint64_t a, uint64_t b) {
