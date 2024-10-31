@@ -1,20 +1,22 @@
 #include <stdio.h>
 #include <stdint.h>
 
+#include "bcd.h"
+
 // Adapted from https://homepage.divms.uiowa.edu/~jones/bcd/bcd.html
 
-int bcd_valid(uint64_t x) {
+int old_bcd_valid(uint64_t x) {
     uint64_t t1 = x + 0x0666666666666666;
     uint64_t t2 = t1 ^ x;
     uint64_t t3 = t2 ^ 0x1111111111111110;
     return !t3;
 }
 
-int new_bcd_valid(uint64_t x) {
-    return bcd_valid(x >> 32) && bcd_valid(x & 0xFFFFFFFF);
+int bcd_valid(uint64_t x) {
+    return old_bcd_valid(x >> 32) && old_bcd_valid(x & 0xFFFFFFFF);
 }
 
-uint64_t bcd_add(uint64_t a, uint64_t b) {
+uint64_t old_bcd_add(uint64_t a, uint64_t b) {
     uint64_t t1 = a + 0x0666666666666666;
     uint64_t t2 = t1 + b;
     uint64_t t3 = t1 ^ b;
@@ -42,27 +44,27 @@ uint64_t csx2tc(uint64_t i) {
     }
 }
 
-uint64_t new_bcd_add(uint64_t a, uint64_t b, uint64_t *carry) {
-    uint64_t result_lo32 = bcd_add(a & 0xFFFFFFFF, bcd_add(b & 0xFFFFFFFF, *carry));
-    uint64_t result_hi32 = bcd_add(a >> 32, bcd_add(b >> 32, result_lo32 >> 32));
+uint64_t bcd_add(uint64_t a, uint64_t b, uint64_t *carry) {
+    uint64_t result_lo32 = old_bcd_add(a & 0xFFFFFFFF, old_bcd_add(b & 0xFFFFFFFF, *carry));
+    uint64_t result_hi32 = old_bcd_add(a >> 32, old_bcd_add(b >> 32, result_lo32 >> 32));
     *carry = result_hi32 >> 32;
     uint64_t result = (result_hi32 << 32) | (result_lo32 & 0xFFFFFFFF);
     return result;
 }
 
-uint64_t new_bcd_add_no_carry(uint64_t a, uint64_t b) {
-    uint64_t result_lo32 = bcd_add(a & 0xFFFFFFFF, b & 0xFFFFFFFF);
-    uint64_t result_hi32 = bcd_add(a >> 32, bcd_add(b >> 32, result_lo32 >> 32));
+uint64_t bcd_add_no_carry(uint64_t a, uint64_t b) {
+    uint64_t result_lo32 = old_bcd_add(a & 0xFFFFFFFF, b & 0xFFFFFFFF);
+    uint64_t result_hi32 = old_bcd_add(a >> 32, old_bcd_add(b >> 32, result_lo32 >> 32));
     uint64_t result = (result_hi32 << 32) | (result_lo32 & 0xFFFFFFFF);
     return result;
 }
 
-uint64_t new_bcd_neg(uint64_t a) {
+uint64_t bcd_neg(uint64_t a) {
     uint64_t carry = 0;
-    return new_bcd_add(0x9999999999999999 - a, 1, &carry);
+    return bcd_add(0x9999999999999999 - a, 1, &carry);
 }
 
-uint64_t new_bcd_inv(uint64_t a) {
+uint64_t bcd_inv(uint64_t a) {
     return 0x9999999999999999 - a;
 }
 
@@ -77,12 +79,12 @@ uint64_t bcd_bin2dec(uint64_t x) {
         x /= 10;
     }
 
-    return is_negative ? new_bcd_neg(result) : result;
+    return is_negative ? bcd_neg(result) : result;
 }
 
 uint64_t bcd_dec2bin(uint64_t x) {
     int is_negative = (x >> 60 >= 5);
-    if (is_negative) x = new_bcd_neg(x);
+    if (is_negative) x = bcd_neg(x);
 
     uint64_t result = 0;
     int count = 15;
@@ -94,10 +96,10 @@ uint64_t bcd_dec2bin(uint64_t x) {
     return is_negative ? -result : result;
 }
 
-uint64_t new_bcd_sub(uint64_t a, uint64_t b, uint64_t *carry) {
-    uint64_t c = *carry ? new_bcd_add_no_carry(b, 1) : b;
+uint64_t bcd_sub(uint64_t a, uint64_t b, uint64_t *carry) {
+    uint64_t c = *carry ? bcd_add_no_carry(b, 1) : b;
     *carry = 0;
-    uint64_t result = new_bcd_add(a, new_bcd_neg(c), carry);
+    uint64_t result = bcd_add(a, bcd_neg(c), carry);
     *carry = !(*carry);
     return result;
 }
