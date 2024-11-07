@@ -8,7 +8,8 @@
                 MARK    #200    INTR_SAV:
                 
                 MARK    #210    MEMORY:
-                MARK    #218    CONSOLE:
+                MARK    #218    MEMORY_DEC:
+                MARK    #220    CONSOLE:
 
                 MARK    #2000
 
