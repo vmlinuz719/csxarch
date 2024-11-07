@@ -76,6 +76,7 @@ void inst_X(em3_regs_t *r, uint64_t i);
 
 // Decimal Block
 void inst_ADR(em3_regs_t *r, uint64_t i);
+void inst_SDR(em3_regs_t *r, uint64_t i);
 
 // Stack Block
 void inst_LCIN(em3_regs_t *r, uint64_t i);
