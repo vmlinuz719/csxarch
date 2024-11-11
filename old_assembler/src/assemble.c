@@ -32,6 +32,7 @@ struct opcode_def opcodes[] = {
     {   "BSWP",     0x0F02,     assemble_type_ext05_rr},
     {   "SL",       0x0F03,     assemble_type_ext05_ri},
     {   "SLA",      0x0F04,     assemble_type_ext05_ri},
+    {   "SLD",      0x0F05,     assemble_type_ext05_ri},
     
     
     {   "MVR",      0x10,       assemble_type_rr    },

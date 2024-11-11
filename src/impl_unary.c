@@ -2,6 +2,7 @@
 #include "byteswap.h"
 #include "csx.h"
 #include "csximpl.h"
+#include "bcd.h"
 
 void inst_LSI(em3_regs_t *r, uint64_t i) {
 	INST_LEN(r, 2);
@@ -135,6 +136,7 @@ void inst_ext05_block_0f(em3_regs_t *r, uint64_t i) {
         case 2:
             inst_bswp(r, i);
             break;
+            
         case 3: {
             r->increment = 4;
             uint64_t original = get_reg(r, EXT05_RR_RS(i));
@@ -154,6 +156,29 @@ void inst_ext05_block_0f(em3_regs_t *r, uint64_t i) {
             } else {
                 set_reg(r, EXT05_RR_RD(i), sar(original, -shamt));
             }
+        } break;
+
+        case 5: {
+            r->increment = 4;
+            
+            uint64_t original = csx2valid(get_reg(r, EXT05_RR_RS(i)));
+            
+            if (!(bcd_valid(original))) {
+                r->increment = 0;
+                error(r, DECIMAL_FORMAT);
+                return;
+            }
+            
+            int64_t shamt = EXT8(EXT05_RR_I8(i));
+            
+            uint64_t result;
+            if (shamt >= 0) {
+                result = shl(original, shamt * 4);
+            } else {
+                result = shr(original, shamt * -4);
+            }
+            
+            set_reg(r, EXT05_RR_RD(i), tc2csx(result));
         } break;
 
         default:
