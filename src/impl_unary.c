@@ -186,3 +186,18 @@ void inst_ext05_block_0f(em3_regs_t *r, uint64_t i) {
             error(r, ILLEGAL_INSTRUCTION);
     }
 }
+
+void inst_NED(em3_regs_t *r, uint64_t i) {
+	INST_LEN(r, 2);
+    r->increment = 2;
+    
+    uint64_t reg = get_reg(r, RR_RS(i));
+    uint64_t original = csx2valid(reg);
+    if (!(bcd_valid(original))) {
+        r->increment = 0;
+        error(r, DECIMAL_FORMAT);
+        return;
+    }
+    
+    set_reg(r, RR_RD(i), tc2csx(bcd_neg(original)));
+}

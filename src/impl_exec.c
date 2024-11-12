@@ -127,6 +127,7 @@ void inst_ex(em3_regs_t *r, uint64_t i) {
         // Decimal Block
         case 0x80:  inst_ADR            (r, i); break;
         case 0x81:  inst_SDR            (r, i); break;
+        case 0x82:  inst_NED            (r, i); break;
 
         // Address Translation Control Block
         case 0xA0:  inst_MFPM           (r, i); break;
