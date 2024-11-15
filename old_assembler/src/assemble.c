@@ -194,6 +194,7 @@ struct opcode_def opcodes[] = {
     {   "ADR",      0x80,       assemble_type_rm_alt},
     {   "SDR",      0x81,       assemble_type_rm_alt},
     {   "AD",       0x82,       assemble_type_rm_st },
+    {   "SD",       0x83,       assemble_type_rm_st },
     {   "NED",      0x84,       assemble_type_rr    },
 
     {   "MFPM",     0xA0,       assemble_type_rr    },
