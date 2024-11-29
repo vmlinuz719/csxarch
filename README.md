@@ -15,4 +15,4 @@ run `./obj/csxarch`
 A: Do not attempt to run `csxarch` on a bagel, please upgrade to at least a VAX-11 (1977) and install at least gmake 1.0
 
 ## Discord
-[check it out](https://discord.gg/UjWEcBYtpf), this is where I babble about development progress
+will return early 2025
