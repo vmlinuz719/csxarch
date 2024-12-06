@@ -713,7 +713,7 @@ IPL_EXIT:       POP     %LR
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             ;
-            ;   IPL_4010: CSX 4010 Disk Controller IPL driver
+            ;   IPL_4010: 4010 Disk Controller IPL driver
             ;
             
 IPL_4010:       PUSH    %LR
@@ -801,7 +801,7 @@ CNSLINTR:       STM     %A,%X,@INTR_SAV
 
 DIGITS:         DCS     "0123456789ABCDEF"
 MODEL:          DC      #A
-                DCS     "0001I CSX 896//MV ROM02, "
+                DCS     "0001I ISC V/Series 680+ ROM02, "
                 DC      #0
 BYTES_OK:       DCS     " bytes OK"
                 DC      #0
@@ -873,20 +873,11 @@ IPLTAB:         DL      #4010
                 
                 DL      #0
 
-CREDITS:        DCS     "                 "
-                DCS     "  ___ _____  __  ___ ___  __   ____  ____   __"
+CREDITS:        DCS     "V/Series 680+ ROM (c) Integrated Specifications Corp."
                 DC      #A
-                DCS     "                 "
-                DCS     " / __/ __\ \/ / ( _ ) _ \/ /  / /  \/  \ \ / /"
-                DC      #A
-                DCS     "                 "
-                DCS     "| (__\__ \>  <  / _ \_, / _ \/ /| |\/| |\ V / "
-                DC      #A
-                DCS     "                 "
-                DCS     " \___|___/_/\_\ \___//_/\___/_/ |_|  |_| \_/  "
-                DC      #A
-                DC      #A
-                DCS     "(Over)Engineered by github.com/vmlinuz719/"
+                DCS     "Hacked by github.com/vmlinuz719/"
                 DC      #A
                 DCS     "We made CSX, They fsck(8)ed it up"
                 DC      #0
+
+BANANA:         DCS     "BananaE"
