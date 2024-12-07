@@ -2,6 +2,7 @@
 #define _MMIO_
 
 #include <stdint.h>
+#include <pthread.h>
 
 #include "error.h"
 
