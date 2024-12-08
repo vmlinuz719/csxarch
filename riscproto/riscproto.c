@@ -82,7 +82,7 @@ void lcca32_rr_0(lcca_t *cpu, uint32_t inst) {
         case 2: set_reg_l(cpu, RA(inst), b & (c | d)); break;
         case 3: set_reg_l(cpu, RA(inst), b | (c & ~d)); break;
         case 4: set_reg_l(cpu, RA(inst), b ^ (c ^ d)); break;
-        case 5: set_reg_l(cpu, RA(inst), sh(b, c + d)); break;
+        case 5: set_reg_l(cpu, RA(inst), sh(b & 0xFFFFFFFF, c + d)); break;
         case 6: set_reg_l(cpu, RA(inst), sha(b, c + d)); break;
     }
 }
@@ -140,5 +140,69 @@ void lcca32_br_1(lcca_t *cpu, uint32_t inst) {
                 cpu->pc &= 0xFFFFFFFF;
             }
         } break;
+    }
+}
+
+void error(lcca_t *cpu, uint64_t e) {
+    // TODO: Handle errors
+    exit(EXIT_FAILURE);
+}
+
+void lcca32_ls_2(lcca_t *cpu, uint32_t inst) {
+    uint64_t c = get_reg_l(cpu, RC(inst));
+    uint64_t d = LS_DISP(inst);
+    d = EXT15(d);
+
+    lcca_error_t e = 0;
+    uint64_t result;
+    int writeback = 1;
+
+    // TODO: Check storage key
+
+    switch (FN(inst)) {
+        case 0: {
+            result = read_u1b(cpu->bus, (c + d) & 0xFFFFFFFF, &e);
+            result = EXT8(result);
+        } break;
+
+        case 1: {
+            result = read_u1b(cpu->bus, (c + d) & 0xFFFFFFFF, &e);
+        } break;
+
+        case 2: {
+            result = read_u2b(cpu->bus, (c + (d << 1)) & 0xFFFFFFFF, &e);
+            result = EXT16(result);
+        } break;
+
+        case 3: {
+            result = read_u2b(cpu->bus, (c + (d << 1)) & 0xFFFFFFFF, &e);
+        } break;
+
+        case 4: {
+            result = read_u4b(cpu->bus, (c + (d << 2)) & 0xFFFFFFFF, &e);
+        } break;
+
+        case 5: {
+            writeback = 0;
+            write_1b(cpu->bus, (c + d) & 0xFFFFFFFF, get_reg_l(cpu, RA(inst)), &e);
+        } break;
+
+        case 6: {
+            writeback = 0;
+            write_2b(cpu->bus, (c + (d << 1)) & 0xFFFFFFFF, get_reg_l(cpu, RA(inst)), &e);
+        } break;
+
+        case 7: {
+            writeback = 0;
+            write_4b(cpu->bus, (c + (d << 2)) & 0xFFFFFFFF, get_reg_l(cpu, RA(inst)), &e);
+        } break;
+    }
+
+    if (e) {
+        error(cpu, e);
+    }
+
+    else if (writeback) {
+        set_reg_l(cpu, RA(inst), result);
     }
 }
