@@ -46,7 +46,7 @@ void lcca64_br_1(lcca_t *cpu, uint32_t inst) {
         } break;
 
         case 3: {
-            set_reg_q(cpu, RA(inst), d);
+            cpu->pc += a + (d << 2);
         } break;
 
         case 4: {
@@ -135,7 +135,13 @@ void lcca64_ls_2(lcca_t *cpu, uint32_t inst) {
     }
 }
 
-void lcca64_ls_ap_3(lcca_t *cpu, uint32_t inst) {
+void lcca64_im_3(lcca_t *cpu, uint32_t inst) {
+    uint64_t d = IM_IMM(inst);
+    d = EXT23(d);
+    set_reg_q(cpu, RA(inst), d);
+}
+
+void lcca64_ls_ap_4(lcca_t *cpu, uint32_t inst) {
     uint64_t c = get_reg_q(cpu, RC(inst));
     uint64_t d = LS_DISP(inst);
     d = EXT15(d);

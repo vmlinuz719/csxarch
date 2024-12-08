@@ -13,6 +13,7 @@
 #define EXT15(x)            ((x) & (1L << 14) ? (x) | 0xFFFFFFFFFFFF8000 : (x))
 #define EXT16(x)            ((x) & (1L << 15) ? (x) | 0xFFFFFFFFFFFF0000 : (x))
 #define EXT20(x)            ((x) & (1L << 19) ? (x) | 0xFFFFFFFFFFF00000 : (x))
+#define EXT23(x)            ((x) & (1L << 22) ? (x) | 0xFFFFFFFFFF800000 : (x))
 #define EXT32(x)            ((x) & (1L << 31) ? (x) | 0xFFFFFFFF00000000 : (x))
 #define EXT48(x)            ((x) & (1L << 47) ? (x) | 0xFFFF000000000000 : (x))
 
@@ -23,6 +24,8 @@
 #define FN(x)               (((x) >> 20) & 0x7)
 
 #define RR_IMM(x)           (((x) >> 10) & 0x3FF)
+
+#define IM_IMM(x)           ((x) & 0x7FFFFF)
 
 #define BR_DISP(x)          ((x) & 0xFFFFF)
 
@@ -56,12 +59,14 @@ uint64_t sha(uint64_t, int);
 void lcca32_rr_0(lcca_t *, uint32_t);
 void lcca32_br_1(lcca_t *, uint32_t);
 void lcca32_ls_2(lcca_t *, uint32_t);
+void lcca32_im_3(lcca_t *, uint32_t);
 void error(lcca_t *, uint64_t);
 
 void lcca64_rr_0(lcca_t *, uint32_t);
 void lcca64_br_1(lcca_t *, uint32_t);
 void lcca64_ls_2(lcca_t *, uint32_t);
-void lcca64_ls_ap_3(lcca_t *, uint32_t);
+void lcca64_im_3(lcca_t *, uint32_t);
+void lcca64_ls_ap_4(lcca_t *, uint32_t);
 
 void *lcca_run(lcca_t *);
 
