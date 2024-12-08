@@ -141,7 +141,13 @@ void lcca64_im_3(lcca_t *cpu, uint32_t inst) {
     set_reg_q(cpu, RA(inst), d);
 }
 
-void lcca64_ls_ap_4(lcca_t *cpu, uint32_t inst) {
+void lcca64_im_4(lcca_t *cpu, uint32_t inst) {
+    uint64_t d = IM_IMM(inst);
+    d = EXT23(d);
+    set_reg_q(cpu, RA(inst), d << 9);
+}
+
+void lcca64_ls_ap_5(lcca_t *cpu, uint32_t inst) {
     uint64_t c = get_reg_q(cpu, RC(inst));
     uint64_t d = LS_DISP(inst);
     d = EXT15(d);

@@ -60,13 +60,15 @@ void lcca32_rr_0(lcca_t *, uint32_t);
 void lcca32_br_1(lcca_t *, uint32_t);
 void lcca32_ls_2(lcca_t *, uint32_t);
 void lcca32_im_3(lcca_t *, uint32_t);
+void lcca32_im_4(lcca_t *, uint32_t);
 void error(lcca_t *, uint64_t);
 
 void lcca64_rr_0(lcca_t *, uint32_t);
 void lcca64_br_1(lcca_t *, uint32_t);
 void lcca64_ls_2(lcca_t *, uint32_t);
 void lcca64_im_3(lcca_t *, uint32_t);
-void lcca64_ls_ap_4(lcca_t *, uint32_t);
+void lcca64_im_4(lcca_t *, uint32_t);
+void lcca64_ls_ap_5(lcca_t *, uint32_t);
 
 void *lcca_run(lcca_t *);
 

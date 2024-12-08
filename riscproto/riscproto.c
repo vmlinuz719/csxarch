@@ -88,12 +88,6 @@ void lcca32_rr_0(lcca_t *cpu, uint32_t inst) {
     }
 }
 
-void lcca32_im_3(lcca_t *cpu, uint32_t inst) {
-    uint64_t d = IM_IMM(inst);
-    d = EXT23(d);
-    set_reg_l(cpu, RA(inst), d);
-}
-
 void lcca32_br_1(lcca_t *cpu, uint32_t inst) {
     uint64_t a = get_reg_l(cpu, RA(inst));
     uint64_t d = BR_DISP(inst);
@@ -241,6 +235,18 @@ void *lcca_run(lcca_t *cpu) {
     return NULL;
 }
 
+void lcca32_im_3(lcca_t *cpu, uint32_t inst) {
+    uint64_t d = IM_IMM(inst);
+    d = EXT23(d);
+    set_reg_l(cpu, RA(inst), d);
+}
+
+void lcca32_im_4(lcca_t *cpu, uint32_t inst) {
+    uint64_t d = IM_IMM(inst);
+    d = EXT23(d);
+    set_reg_l(cpu, RA(inst), d << 9);
+}
+
 void lcca_print(lcca_t *cpu) {
     printf("%%PC: %08X \n", (uint32_t) (cpu->pc & 0xFFFFFFFF));
     for (int i = 0; i < 32; i += 4) {
@@ -278,7 +284,8 @@ int main(int argc, char *argv[]) {
     cpu.operations[1] = lcca64_br_1;
     cpu.operations[2] = lcca64_ls_2;
     cpu.operations[3] = lcca64_im_3;
-    cpu.operations[4] = lcca64_ls_ap_4;
+    cpu.operations[4] = lcca64_im_4;
+    cpu.operations[5] = lcca64_ls_ap_5;
 
     cpu.running = 1;
     lcca_run(&cpu);
