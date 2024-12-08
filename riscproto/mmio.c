@@ -5,6 +5,8 @@
 #include "error.h"
 #include "mmio.h"
 
+// TODO: Save bus/alignment error address
+
 uint64_t read_u1b(lcca_bus_t *r, uint64_t a, lcca_error_t *e) {
     uint8_t *m = r->memory;
 

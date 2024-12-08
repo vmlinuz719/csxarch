@@ -17,10 +17,8 @@ typedef struct {
     void (*write)
         (void *, int /* size */, uint32_t /* addr */, uint64_t /* data */,
             lcca_error_t *);
-    uint64_t (*sense)
-        (void *, int /* reg */);
     uint64_t (*command)
-        (void *, int /* reg */, uint64_t /* command */, lcca_error_t *);
+        (void *, int /* reg */, uint64_t /* command */, uint64_t /* data */, lcca_error_t *);
     void (*destroy) (void *);
 } mmio_unit_t;
 

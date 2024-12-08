@@ -37,6 +37,8 @@ typedef struct lcca_t {
     uint64_t pc;
 
     void (*operations[16]) (struct lcca_t *, uint32_t);
+
+    int running;
 } lcca_t;
 
 uint64_t get_reg_l(lcca_t *, int);
@@ -48,6 +50,8 @@ void set_reg_q(lcca_t *, int, uint64_t);
 void lcca32_rr_0(lcca_t *, uint32_t);
 void lcca32_br_1(lcca_t *, uint32_t);
 void lcca32_ls_2(lcca_t *, uint32_t);
+
+void *lcca_run(lcca_t *);
 
 #endif
 

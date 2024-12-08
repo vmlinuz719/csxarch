@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <pthread.h>
 
 #include "byteswap.h"
@@ -145,7 +146,7 @@ void lcca32_br_1(lcca_t *cpu, uint32_t inst) {
 
 void error(lcca_t *cpu, uint64_t e) {
     // TODO: Handle errors
-    exit(EXIT_FAILURE);
+    cpu->running = 0;
 }
 
 void lcca32_ls_2(lcca_t *cpu, uint32_t inst) {
@@ -205,4 +206,42 @@ void lcca32_ls_2(lcca_t *cpu, uint32_t inst) {
     else if (writeback) {
         set_reg_l(cpu, RA(inst), result);
     }
+}
+
+void *lcca_run(lcca_t *cpu) {
+    // TODO: Interrupts
+
+    lcca_bus_t *bus = cpu->bus;
+    lcca_error_t fetch_error = 0;
+
+    while(cpu->running) {
+        uint32_t inst = read_u4b(bus, cpu->pc, &fetch_error);
+        if (fetch_error) error(cpu, fetch_error);
+        else {
+            void (*operation) (struct lcca_t *, uint32_t) = cpu->operations[OPCODE(inst)];
+            if (operation == NULL) error(cpu, ILLEGAL_INSTRUCTION);
+            else {
+                cpu->pc += 4;
+                operation(cpu, inst);
+            }
+        }
+    }
+
+    return NULL;
+}
+
+int main(int argc, char *argv[]) {
+    lcca_bus_t bus;
+
+    uint8_t *mem = malloc(65536);
+    bus.memory = mem;
+    bus.mem_limit = 65536;
+
+    lcca_t cpu;
+
+    memset(&cpu, 0, sizeof(cpu));
+
+    free(mem);
+
+    return 0;
 }
