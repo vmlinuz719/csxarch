@@ -47,11 +47,25 @@ void set_reg_l(lcca_t *, int, uint64_t);
 uint64_t get_reg_q(lcca_t *, int);
 void set_reg_q(lcca_t *, int, uint64_t);
 
+uint64_t shl(uint64_t, uint64_t);
+uint64_t shr(uint64_t, uint64_t);
+uint64_t sar(uint64_t, uint64_t);
+uint64_t sh(uint64_t, int);
+uint64_t sha(uint64_t, int);
+
 void lcca32_rr_0(lcca_t *, uint32_t);
 void lcca32_br_1(lcca_t *, uint32_t);
 void lcca32_ls_2(lcca_t *, uint32_t);
+void error(lcca_t *, uint64_t);
+
+void lcca64_rr_0(lcca_t *, uint32_t);
+void lcca64_br_1(lcca_t *, uint32_t);
+void lcca64_ls_2(lcca_t *, uint32_t);
 
 void *lcca_run(lcca_t *);
+
+void lcca_print(lcca_t *);
+void lcca64_print(lcca_t *);
 
 #endif
 

@@ -95,18 +95,18 @@ void lcca32_br_1(lcca_t *cpu, uint32_t inst) {
 
     switch (FN(inst)) {
         case 0: {
-            cpu->pc += (a + d) << 2;
+            cpu->pc += a + (d << 2);
             cpu->pc &= 0xFFFFFFFF;
         } break;
 
         case 1: {
             set_reg_l(cpu, 31, cpu->pc);
-            cpu->pc += (a + d) << 2;
+            cpu->pc += a + (d << 2);
             cpu->pc &= 0xFFFFFFFF;
         } break;
 
         case 2: {
-            cpu->pc += get_reg_l(cpu, 31) + ((a + d) << 2);
+            cpu->pc += get_reg_l(cpu, 31) + (a + (d << 2));
             cpu->pc &= 0xFFFFFFFF;
         } break;
 
@@ -267,13 +267,13 @@ int main(int argc, char *argv[]) {
     lcca_t cpu;
     memset(&cpu, 0, sizeof(cpu));
     cpu.bus = &bus;
-    cpu.operations[0] = lcca32_rr_0;
-    cpu.operations[1] = lcca32_br_1;
-    cpu.operations[2] = lcca32_ls_2;
+    cpu.operations[0] = lcca64_rr_0;
+    cpu.operations[1] = lcca64_br_1;
+    cpu.operations[2] = lcca64_ls_2;
 
     cpu.running = 1;
     lcca_run(&cpu);
-    lcca_print(&cpu);
+    lcca64_print(&cpu);
 
     free(mem);
 
