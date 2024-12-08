@@ -23,6 +23,8 @@
 
 #define RR_IMM(x)           (((x) >> 10) & 0x3FF)
 
+#define BR_DISP(x)          ((x) & 0xFFFFF)
+
 typedef struct lcca_t {
     lcca_bus_t *bus;
     pthread_t *run;
@@ -41,6 +43,7 @@ uint64_t get_reg_q(lcca_t *, int);
 void set_reg_q(lcca_t *, int, uint64_t);
 
 void lcca32_rr_0(lcca_t *, uint32_t);
+void lcca32_br_1(lcca_t *, uint32_t);
 
 #endif
 

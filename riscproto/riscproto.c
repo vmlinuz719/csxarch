@@ -86,3 +86,59 @@ void lcca32_rr_0(lcca_t *cpu, uint32_t inst) {
         case 6: set_reg_l(cpu, RA(inst), sha(b, c + d)); break;
     }
 }
+
+void lcca32_br_1(lcca_t *cpu, uint32_t inst) {
+    uint64_t a = get_reg_l(cpu, RA(inst));
+    uint64_t d = BR_DISP(inst);
+    d = EXT20(d);
+
+    switch (FN(inst)) {
+        case 0: {
+            cpu->pc += (a + d) << 2;
+            cpu->pc &= 0xFFFFFFFF;
+        } break;
+
+        case 1: {
+            set_reg_l(cpu, 31, cpu->pc);
+            cpu->pc += (a + d) << 2;
+            cpu->pc &= 0xFFFFFFFF;
+        } break;
+
+        case 2: {
+            cpu->pc += get_reg_l(cpu, 31) + ((a + d) << 2);
+            cpu->pc &= 0xFFFFFFFF;
+        } break;
+
+        case 3: {
+            set_reg_l(cpu, RA(inst), d);
+        } break;
+
+        case 4: {
+            if (a == 0) {
+                cpu->pc += (d) << 2;
+                cpu->pc &= 0xFFFFFFFF;
+            }
+        } break;
+
+        case 5: {
+            if (a != 0) {
+                cpu->pc += (d) << 2;
+                cpu->pc &= 0xFFFFFFFF;
+            }
+        } break;
+
+        case 6: {
+            if ((int64_t) a > 0) {
+                cpu->pc += (d) << 2;
+                cpu->pc &= 0xFFFFFFFF;
+            }
+        } break;
+
+        case 7: {
+            if ((int64_t) a <= 0) {
+                cpu->pc += (d) << 2;
+                cpu->pc &= 0xFFFFFFFF;
+            }
+        } break;
+    }
+}
