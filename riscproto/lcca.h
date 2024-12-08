@@ -61,6 +61,7 @@ void error(lcca_t *, uint64_t);
 void lcca64_rr_0(lcca_t *, uint32_t);
 void lcca64_br_1(lcca_t *, uint32_t);
 void lcca64_ls_2(lcca_t *, uint32_t);
+void lcca64_ls_ap_3(lcca_t *, uint32_t);
 
 void *lcca_run(lcca_t *);
 

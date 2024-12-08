@@ -270,6 +270,7 @@ int main(int argc, char *argv[]) {
     cpu.operations[0] = lcca64_rr_0;
     cpu.operations[1] = lcca64_br_1;
     cpu.operations[2] = lcca64_ls_2;
+    cpu.operations[3] = lcca64_ls_ap_3;
 
     cpu.running = 1;
     lcca_run(&cpu);
