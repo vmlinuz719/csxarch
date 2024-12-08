@@ -214,7 +214,11 @@ void *lcca_run(lcca_t *cpu) {
     lcca_bus_t *bus = cpu->bus;
     lcca_error_t fetch_error = 0;
 
-    while(cpu->running) {
+    // TODO: This is for quick and dirty benchmarking; remove it
+    int i = 0;
+    int target = 400000000;
+
+    while(cpu->running && i++ < target) {
         uint32_t inst = read_u4b(bus, cpu->pc, &fetch_error);
         if (fetch_error) error(cpu, fetch_error);
         else {
@@ -230,6 +234,19 @@ void *lcca_run(lcca_t *cpu) {
     return NULL;
 }
 
+void lcca_print(lcca_t *cpu) {
+    printf("%%PC: %08X \n", (uint32_t) (cpu->pc & 0xFFFFFFFF));
+    for (int i = 0; i < 32; i += 4) {
+        printf(
+            "%%%02d: %08X %%%02d: %08X %%%02d: %08X %%%02d: %08X \n",
+            i, (uint32_t) (get_reg_l(cpu, i) & 0xFFFFFFFF),
+            i + 1, (uint32_t) (get_reg_l(cpu, i + 1) & 0xFFFFFFFF),
+            i + 2, (uint32_t) (get_reg_l(cpu, i + 2) & 0xFFFFFFFF),
+            i + 3, (uint32_t) (get_reg_l(cpu, i + 3) & 0xFFFFFFFF)
+        );
+    }
+}
+
 int main(int argc, char *argv[]) {
     lcca_bus_t bus;
 
@@ -237,9 +254,26 @@ int main(int argc, char *argv[]) {
     bus.memory = mem;
     bus.mem_limit = 65536;
 
-    lcca_t cpu;
+    mem[0] = 0x00;
+    mem[1] = 0x80;
+    mem[2] = 0x04;
+    mem[3] = 0x01;
 
+    mem[4] = 0x10;
+    mem[5] = 0x0F;
+    mem[6] = 0xFF;
+    mem[7] = 0xFE;
+
+    lcca_t cpu;
     memset(&cpu, 0, sizeof(cpu));
+    cpu.bus = &bus;
+    cpu.operations[0] = lcca32_rr_0;
+    cpu.operations[1] = lcca32_br_1;
+    cpu.operations[2] = lcca32_ls_2;
+
+    cpu.running = 1;
+    lcca_run(&cpu);
+    lcca_print(&cpu);
 
     free(mem);
 

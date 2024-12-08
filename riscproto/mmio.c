@@ -5,6 +5,17 @@
 #include "error.h"
 #include "mmio.h"
 
+// TODO: figure out why the correct endianness isn't being detected in the header
+
+#if defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN || \
+    defined(__LITTLE_ENDIAN__) || \
+    defined(__ARMEL__) || \
+    defined(__THUMBEL__) || \
+    defined(__AARCH64EL__) || \
+    defined(_MIPSEL) || defined(__MIPSEL) || defined(__MIPSEL__)
+#define __CSX_LITTLE_ENDIAN__
+#endif
+
 // TODO: Save bus/alignment error address
 
 uint64_t read_u1b(lcca_bus_t *r, uint64_t a, lcca_error_t *e) {
