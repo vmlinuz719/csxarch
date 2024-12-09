@@ -9,24 +9,6 @@
 #include "mmio.h"
 #include "lcca.h"
 
-uint64_t get_reg_l(lcca_t *cpu, int reg) {
-    if (reg == 0) {
-        return 0;
-    }
-
-    else {
-        uint64_t result = cpu->regs[reg] & 0xFFFFFFFF;
-        return EXT32(result);
-    }
-}
-
-void set_reg_l(lcca_t *cpu, int reg, uint64_t value) {
-    if (reg != 0) {
-        uint64_t result = value & 0xFFFFFFFF;
-        cpu->regs[reg] = EXT32(result);
-    }
-}
-
 uint64_t get_reg_q(lcca_t *cpu, int reg) {
     if (reg == 0) {
         return 0;
@@ -71,142 +53,9 @@ uint64_t sha(uint64_t x, int shamt) {
     else return shl(x, shamt);
 }
 
-void lcca32_rr_0(lcca_t *cpu, uint32_t inst) {
-    uint64_t b = get_reg_l(cpu, RB(inst));
-    uint64_t c = get_reg_l(cpu, RC(inst));
-    uint64_t d = RR_IMM(inst);
-    d = EXT10(d);
-
-    switch (FN(inst)) {
-        case 0: set_reg_l(cpu, RA(inst), b + c + d); break;
-        case 1: set_reg_l(cpu, RA(inst), b - (c + d)); break;
-        case 2: set_reg_l(cpu, RA(inst), b & (c | d)); break;
-        case 3: set_reg_l(cpu, RA(inst), b | (c & ~d)); break;
-        case 4: set_reg_l(cpu, RA(inst), b ^ (c ^ d)); break;
-        case 5: set_reg_l(cpu, RA(inst), sh(b & 0xFFFFFFFF, c + d)); break;
-        case 6: set_reg_l(cpu, RA(inst), sha(b, c + d)); break;
-    }
-}
-
-void lcca32_br_1(lcca_t *cpu, uint32_t inst) {
-    uint64_t a = get_reg_l(cpu, RA(inst));
-    uint64_t d = BR_DISP(inst);
-    d = EXT20(d);
-
-    switch (FN(inst)) {
-        case 0: {
-            cpu->pc += a + (d << 2);
-            cpu->pc &= 0xFFFFFFFF;
-        } break;
-
-        case 1: {
-            set_reg_l(cpu, 31, cpu->pc);
-            cpu->pc += a + (d << 2);
-            cpu->pc &= 0xFFFFFFFF;
-        } break;
-
-        case 2: {
-            cpu->pc += get_reg_l(cpu, 31) + (a + (d << 2));
-            cpu->pc &= 0xFFFFFFFF;
-        } break;
-
-        case 3: {
-            cpu->pc = a + (d << 2);
-            cpu->pc &= 0xFFFFFFFF;
-        } break;
-
-        case 4: {
-            if (a == 0) {
-                cpu->pc += (d) << 2;
-                cpu->pc &= 0xFFFFFFFF;
-            }
-        } break;
-
-        case 5: {
-            if (a != 0) {
-                cpu->pc += (d) << 2;
-                cpu->pc &= 0xFFFFFFFF;
-            }
-        } break;
-
-        case 6: {
-            if ((int64_t) a > 0) {
-                cpu->pc += (d) << 2;
-                cpu->pc &= 0xFFFFFFFF;
-            }
-        } break;
-
-        case 7: {
-            if ((int64_t) a <= 0) {
-                cpu->pc += (d) << 2;
-                cpu->pc &= 0xFFFFFFFF;
-            }
-        } break;
-    }
-}
-
 void error(lcca_t *cpu, uint64_t e) {
     // TODO: Handle errors
     cpu->running = 0;
-}
-
-void lcca32_ls_2(lcca_t *cpu, uint32_t inst) {
-    uint64_t c = get_reg_l(cpu, RC(inst));
-    uint64_t d = LS_DISP(inst);
-    d = EXT15(d);
-
-    lcca_error_t e = 0;
-    uint64_t result;
-    int writeback = 1;
-
-    // TODO: Check storage key
-
-    switch (FN(inst)) {
-        case 0: {
-            result = read_u1b(cpu->bus, (c + d) & 0xFFFFFFFF, &e);
-            result = EXT8(result);
-        } break;
-
-        case 1: {
-            result = read_u1b(cpu->bus, (c + d) & 0xFFFFFFFF, &e);
-        } break;
-
-        case 2: {
-            result = read_u2b(cpu->bus, (c + (d << 1)) & 0xFFFFFFFF, &e);
-            result = EXT16(result);
-        } break;
-
-        case 3: {
-            result = read_u2b(cpu->bus, (c + (d << 1)) & 0xFFFFFFFF, &e);
-        } break;
-
-        case 4: {
-            result = read_u4b(cpu->bus, (c + (d << 2)) & 0xFFFFFFFF, &e);
-        } break;
-
-        case 5: {
-            writeback = 0;
-            write_1b(cpu->bus, (c + d) & 0xFFFFFFFF, get_reg_l(cpu, RA(inst)), &e);
-        } break;
-
-        case 6: {
-            writeback = 0;
-            write_2b(cpu->bus, (c + (d << 1)) & 0xFFFFFFFF, get_reg_l(cpu, RA(inst)), &e);
-        } break;
-
-        case 7: {
-            writeback = 0;
-            write_4b(cpu->bus, (c + (d << 2)) & 0xFFFFFFFF, get_reg_l(cpu, RA(inst)), &e);
-        } break;
-    }
-
-    if (e) {
-        error(cpu, e);
-    }
-
-    else if (writeback) {
-        set_reg_l(cpu, RA(inst), result);
-    }
 }
 
 void *lcca_run(lcca_t *cpu) {
@@ -233,31 +82,6 @@ void *lcca_run(lcca_t *cpu) {
     }
 
     return NULL;
-}
-
-void lcca32_im_3(lcca_t *cpu, uint32_t inst) {
-    uint64_t d = IM_IMM(inst);
-    d = EXT23(d);
-    set_reg_l(cpu, RA(inst), d);
-}
-
-void lcca32_im_4(lcca_t *cpu, uint32_t inst) {
-    uint64_t d = IM_IMM(inst);
-    d = EXT23(d);
-    set_reg_l(cpu, RA(inst), d << 9);
-}
-
-void lcca_print(lcca_t *cpu) {
-    printf("%%PC: %08X \n", (uint32_t) (cpu->pc & 0xFFFFFFFF));
-    for (int i = 0; i < 32; i += 4) {
-        printf(
-            "%%%02d: %08X %%%02d: %08X %%%02d: %08X %%%02d: %08X \n",
-            i, (uint32_t) (get_reg_l(cpu, i) & 0xFFFFFFFF),
-            i + 1, (uint32_t) (get_reg_l(cpu, i + 1) & 0xFFFFFFFF),
-            i + 2, (uint32_t) (get_reg_l(cpu, i + 2) & 0xFFFFFFFF),
-            i + 3, (uint32_t) (get_reg_l(cpu, i + 3) & 0xFFFFFFFF)
-        );
-    }
 }
 
 int main(int argc, char *argv[]) {
