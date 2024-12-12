@@ -53,6 +53,31 @@ uint64_t sha(uint64_t x, int shamt) {
     else return shl(x, shamt);
 }
 
+void intr_internal(lcca_t *cpu, int which) {
+    cpu->c_regs[CR_APC] = cpu->pc;
+    cpu->c_regs[CR_APSQ] = cpu->c_regs[CR_PSQ];
+
+    if (cpu->c_regs[CR_PSQ] & CR_PSQ_AE) {
+        cpu->regs[R_ABI_X8] = cpu->regs[R_ABI_SP];
+        cpu->regs[R_ABI_X9] = cpu->regs[R_ABI_LR];
+        cpu->regs[R_ABI_SP] = cpu->c_regs[CR_ASP];
+    }
+
+    cpu->c_regs[CR_PSQ] &= CR_PSQ_INTR_ENTRY_MASK;
+    cpu->pc = cpu->c_regs[CR_IA] + 64 * which;
+}
+
+void intr_restore(lcca_t *cpu) {
+    cpu->pc = cpu->c_regs[CR_APC];
+    cpu->c_regs[CR_PSQ] = cpu->c_regs[CR_APSQ];
+
+    if (cpu->c_regs[CR_PSQ] & CR_PSQ_AE) {
+        cpu->c_regs[CR_ASP] = cpu->regs[R_ABI_SP];
+        cpu->regs[R_ABI_SP] = cpu->regs[R_ABI_X8];
+        cpu->regs[R_ABI_LR] = cpu->regs[R_ABI_X9];
+    }
+}
+
 void error(lcca_t *cpu, uint64_t e) {
     // TODO: Handle errors
     cpu->running = 0;
@@ -110,12 +135,14 @@ int main(int argc, char *argv[]) {
     cpu.operations[3] = lcca64_im_3;
     cpu.operations[4] = lcca64_im_4;
     cpu.operations[5] = lcca64_ls_ap_5;
+    pthread_mutex_init(&(cpu.intr_mutex), NULL);
 
     cpu.running = 1;
     lcca_run(&cpu);
     lcca64_print(&cpu);
 
     free(mem);
+    pthread_mutex_destroy(&(cpu.intr_mutex));
 
     return 0;
 }

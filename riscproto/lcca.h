@@ -31,13 +31,42 @@
 
 #define LS_DISP(x)          (((x) >> 5) & 0x7FFF)
 
+#define CR_MAX              40
+
+#define CR_PSQ              0
+#define CR_PSQ_EI           (1)
+#define CR_PSQ_PL           (1 << 1)
+#define CR_PSQ_AE           (1 << 2)
+#define CR_PSQ_INTR_ENTRY_MASK 0xFFFFFFFFFFFFFFFC
+
+#define CR_APC              1
+#define CR_APSQ             2
+#define CR_ASP              3
+#define CR_IA               4
+#define IA_HANDLER_INSTS    16
+#define CR_EIM              5
+#define CR_EIP              6
+#define CR_FI               7
+#define CR_FA               8
+#define CR_OB0              16
+#define CR_OD0              32
+#define CR_TIMER            48
+
+#define R_ABI_X8            28
+#define R_ABI_X9            29
+#define R_ABI_SP            30
+#define R_ABI_LR            31
+
 typedef struct lcca_t {
     lcca_bus_t *bus;
     pthread_t *run;
+    pthread_mutex_t intr_mutex;
 
     uint64_t regs[32];
-    uint64_t c_regs[32];
+    uint64_t c_regs[CR_MAX];
     uint64_t pc;
+
+    uint64_t intr_pending, intr_msg[64];
 
     void (*operations[16]) (struct lcca_t *, uint32_t);
 
