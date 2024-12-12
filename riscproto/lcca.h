@@ -36,8 +36,9 @@
 #define CR_PSQ              0
 #define CR_PSQ_EI           (1)
 #define CR_PSQ_PL           (1 << 1)
-#define CR_PSQ_AE           (1 << 2)
-#define CR_PSQ_INTR_ENTRY_MASK 0xFFFFFFFFFFFFFFFC
+#define CR_PSQ_WS           (1 << 2)
+#define CR_PSQ_AE           (1 << 3)
+#define CR_PSQ_INTR_ENTRY_MASK 0xFFFFFFFFFFFFFFF8
 
 #define CR_APC              1
 #define CR_APSQ             2

@@ -172,6 +172,31 @@ void lcca64_ls_ap_5(lcca_t *cpu, uint32_t inst) {
             write_8b(cpu->bus, (c + (d << 3)), get_reg_q(cpu, RA(inst)), &e);
         } break;
 
+        case 3: {
+            // TODO: check protection level
+            if (d < 0 || d > CR_MAX) {
+                error(cpu, NO_SUCH_CR);
+                return;
+            }
+
+            else {
+                result = cpu->c_regs[d] & (~c);
+            }
+        } break;
+
+        case 4: {
+            // TODO: check protection level
+            if (d < 0 || d > CR_MAX) {
+                error(cpu, NO_SUCH_CR);
+                return;
+            }
+
+            else {
+                writeback = 0;
+                cpu->c_regs[d] = get_reg_q(cpu, RA(inst)) | c;
+            }
+        } break;
+
         default: {
             error(cpu, ILLEGAL_INSTRUCTION);
             return;

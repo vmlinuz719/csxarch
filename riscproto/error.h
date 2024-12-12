@@ -9,7 +9,8 @@ typedef enum {
     ILLEGAL_INSTRUCTION,
     PRIVILEGE_VIOLATION,
     DIVIDE_BY_ZERO,
-    DECIMAL_FORMAT
+    DECIMAL_FORMAT,
+    NO_SUCH_CR
 } lcca_error_t;
 
 #endif
