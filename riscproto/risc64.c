@@ -84,7 +84,7 @@ void lcca64_ls_2(lcca_t *cpu, uint32_t inst) {
     uint64_t result;
     int writeback = 1;
 
-    // TODO: Check storage key
+    // TODO: Translate address and check access rights
 
     switch (FN(inst)) {
         case 0: {
@@ -156,7 +156,7 @@ void lcca64_ls_ap_5(lcca_t *cpu, uint32_t inst) {
     uint64_t result;
     int writeback = 1;
 
-    // TODO: Check storage key
+    // TODO: Translate address and check access rights
 
     switch (FN(inst)) {
         case 0: {

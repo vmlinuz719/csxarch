@@ -111,10 +111,13 @@ void *lcca_run(lcca_t *cpu) {
 
 int main(int argc, char *argv[]) {
     lcca_bus_t bus;
+    pthread_mutex_t cas_lock;
 
     uint8_t *mem = malloc(65536);
     bus.memory = mem;
     bus.mem_limit = 65536;
+    pthread_mutex_init(&cas_lock, NULL);
+    bus.cas_lock = &cas_lock;
 
     mem[0] = 0x00;
     mem[1] = 0x80;
@@ -143,6 +146,7 @@ int main(int argc, char *argv[]) {
 
     free(mem);
     pthread_mutex_destroy(&(cpu.intr_mutex));
+    pthread_mutex_destroy(&cas_lock);
 
     return 0;
 }

@@ -46,6 +46,7 @@
 #define IA_HANDLER_INSTS    16
 #define CR_EIM              5
 #define CR_EIP              6
+#define EIP_EXTERNAL_INTRS  16
 #define CR_FI               7
 #define CR_FA               8
 #define CR_OB0              16
@@ -66,7 +67,7 @@ typedef struct lcca_t {
     uint64_t c_regs[CR_MAX];
     uint64_t pc;
 
-    uint64_t intr_pending, intr_msg[64];
+    uint64_t intr_pending, intr_msg[EIP_EXTERNAL_INTRS];
 
     void (*operations[16]) (struct lcca_t *, uint32_t);
 
