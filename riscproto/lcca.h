@@ -31,7 +31,7 @@
 
 #define LS_DISP(x)          (((x) >> 5) & 0x7FFF)
 
-#define CR_MAX              40
+#define CR_MAX              48
 
 #define CR_PSQ              0
 #define CR_PSQ_EI           (1)
@@ -85,6 +85,9 @@ uint64_t sh(uint64_t, int);
 uint64_t sha(uint64_t, int);
 
 void error(lcca_t *, uint64_t);
+
+void intr_internal(lcca_t *cpu, int which);
+void intr_restore(lcca_t *cpu);
 
 void lcca64_rr_0(lcca_t *, uint32_t);
 void lcca64_br_1(lcca_t *, uint32_t);

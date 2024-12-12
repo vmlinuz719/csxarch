@@ -196,6 +196,19 @@ void lcca64_ls_ap_5(lcca_t *cpu, uint32_t inst) {
                 cpu->c_regs[d] = get_reg_q(cpu, RA(inst)) | c;
             }
         } break;
+        
+        case 5: {
+            // TODO: check protection level
+            if (d != 0) {
+                error(cpu, ILLEGAL_INSTRUCTION);
+                return;
+            }
+
+            else {
+                result = c;
+                intr_restore(cpu);
+            }
+        } break;
 
         default: {
             error(cpu, ILLEGAL_INSTRUCTION);
