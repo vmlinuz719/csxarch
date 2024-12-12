@@ -64,7 +64,7 @@ void intr_internal(lcca_t *cpu, int which) {
     }
 
     cpu->c_regs[CR_PSQ] &= CR_PSQ_INTR_ENTRY_MASK;
-    cpu->pc = cpu->c_regs[CR_IA] + 64 * which;
+    cpu->pc = cpu->c_regs[CR_IA] + (4 * IA_HANDLER_INSTS) * which;
 }
 
 void intr_restore(lcca_t *cpu) {
