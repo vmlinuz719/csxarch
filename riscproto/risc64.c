@@ -147,6 +147,16 @@ void lcca64_im_4(lcca_t *cpu, uint32_t inst) {
     set_reg_q(cpu, RA(inst), d << 9);
 }
 
+void simdbg_0(lcca_t *cpu, uint32_t inst) {
+    uint64_t c = get_reg_q(cpu, RC(inst));
+    uint64_t d = LS_DISP(inst);
+    d = EXT15(d);
+
+    uint64_t a = RA(inst);
+
+    
+}
+
 void lcca64_ls_ap_5(lcca_t *cpu, uint32_t inst) {
     uint64_t c = get_reg_q(cpu, RC(inst));
     uint64_t d = LS_DISP(inst);
@@ -216,8 +226,9 @@ void lcca64_ls_ap_5(lcca_t *cpu, uint32_t inst) {
             return;
         }
 
-        default: {
-            error(cpu, ILLEGAL_INSTRUCTION);
+        case 7: {
+            // TODO: check protection level
+            simdbg_0(cpu, inst);
             return;
         }
     }
