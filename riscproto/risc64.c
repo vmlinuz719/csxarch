@@ -200,6 +200,7 @@ void lcca64_ls_ap_5(lcca_t *cpu, uint32_t inst) {
         case 5: {
             // TODO: check protection level
             if (d != 0) {
+                // TODO: CSX-ism REX => SVC when d != 0
                 error(cpu, ILLEGAL_INSTRUCTION);
                 return;
             }
@@ -209,6 +210,11 @@ void lcca64_ls_ap_5(lcca_t *cpu, uint32_t inst) {
                 intr_restore(cpu);
             }
         } break;
+
+        case 6: {
+            intr_internal(cpu, d & 63);
+            return;
+        }
 
         default: {
             error(cpu, ILLEGAL_INSTRUCTION);
