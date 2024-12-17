@@ -38,6 +38,8 @@
 #define CR_PSQ_PL           (1 << 1)
 #define CR_PSQ_WS           (1 << 2)
 #define CR_PSQ_AE           (1 << 3)
+#define CR_PSQ_TE           (1 << 4)
+#define CR_PSQ_OC           (1 << 5)
 #define CR_PSQ_INTR_ENTRY_MASK 0xFFFFFFFFFFFFFFF8
 
 #define CR_APC              1
@@ -52,6 +54,15 @@
 #define CR_FA               8
 #define CR_OB0              16
 #define CR_OD0              32
+#define CR_OD_E             (1 << 1)
+#define CR_OD_D             (1 << 2)
+#define CR_OD_C             (1 << 3)
+#define CR_OD_B             (1 << 4)
+#define CR_OD_w             (1 << 5)
+#define CR_OD_x             (1 << 6)
+#define CR_OD_R             (1 << 7)
+#define CR_OD_W             (1 << 8)
+#define CR_OD_X             (1 << 9)
 #define CR_TIMER            48
 
 #define R_ABI_X8            28

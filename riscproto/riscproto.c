@@ -89,11 +89,7 @@ void *lcca_run(lcca_t *cpu) {
     lcca_bus_t *bus = cpu->bus;
     lcca_error_t fetch_error = 0;
 
-    // TODO: This is for quick and dirty benchmarking; remove it
-    int i = 0;
-    int target = 400000000;
-
-    while(cpu->running && i++ < target) {
+    while(cpu->running) {
         uint32_t inst = read_u4b(bus, cpu->pc, &fetch_error);
         if (fetch_error) error(cpu, fetch_error);
         else {
@@ -119,15 +115,30 @@ int main(int argc, char *argv[]) {
     pthread_mutex_init(&cas_lock, NULL);
     bus.cas_lock = &cas_lock;
 
-    mem[0] = 0x00;
-    mem[1] = 0x80;
-    mem[2] = 0x04;
-    mem[3] = 0x01;
+    mem[0] = 0x50;
+    mem[1] = 0x70;
+    mem[2] = 0x00;
+    mem[3] = 0x00;
 
-    mem[4] = 0x10;
-    mem[5] = 0x0F;
-    mem[6] = 0xFF;
-    mem[7] = 0xFE;
+    mem[4] = 0x50;
+    mem[5] = 0xF0;
+    mem[6] = 0x00;
+    mem[7] = 0x00;
+
+    mem[8] = 0x51;
+    mem[9] = 0x70;
+    mem[10] = 0x00;
+    mem[11] = 0x00;
+
+    mem[12] = 0x51;
+    mem[13] = 0xF0;
+    mem[14] = 0x00;
+    mem[15] = 0x00;
+    
+    mem[16] = 0x52;
+    mem[17] = 0x70;
+    mem[18] = 0x00;
+    mem[19] = 0x02;
 
     lcca_t cpu;
     memset(&cpu, 0, sizeof(cpu));
@@ -138,11 +149,11 @@ int main(int argc, char *argv[]) {
     cpu.operations[3] = lcca64_im_3;
     cpu.operations[4] = lcca64_im_4;
     cpu.operations[5] = lcca64_ls_ap_5;
+    cpu.c_regs[CR_OD0] = 0xFFFFFFFFFFFFC00 | CR_OD_X | CR_OD_W;
     pthread_mutex_init(&(cpu.intr_mutex), NULL);
 
     cpu.running = 1;
     lcca_run(&cpu);
-    lcca64_print(&cpu);
 
     free(mem);
     pthread_mutex_destroy(&(cpu.intr_mutex));
