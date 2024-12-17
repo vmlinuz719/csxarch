@@ -93,7 +93,7 @@ uint64_t translate(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_access_t a
     if (!(cpu->c_regs[CR_PSQ] && CR_PSQ_TE)) return addr;
 
     if (addr & ((1 << size) - 1)) {
-        *e = access_type == FETCH ? XALG : DALG;
+        *e = access_type == FETCH ? XALT : DALT;
         return 0;
     }
 
@@ -293,7 +293,7 @@ void simdbg_0(lcca_t *cpu, uint32_t inst) {
 
         case 4: {
             int rc = (int) c;
-            exit(c);
+            exit(rc);
         } break;
     }
 }

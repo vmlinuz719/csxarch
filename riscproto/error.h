@@ -14,8 +14,8 @@ typedef enum {
     RSGV,      // Read Segmentation Fault
     WSGV,      // Write Segmentation Fault
     XSGV,      // Execute Segmentation Fault
-    DALG,      // Data Alignment Trap
-    XALG,      // Execute Alignment Trap
+    DALT,      // Data Alignment Trap
+    XALT,      // Execute Alignment Trap
     IPLV,      // Instruction Protection Level Trap
 
     OVRF,      // Arithmetic Overflow Trap

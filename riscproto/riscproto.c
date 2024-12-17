@@ -96,7 +96,7 @@ void error(lcca_t *cpu, lcca_error_t e, uint64_t fi, uint64_t fa) {
         case BERR:
         case RSGV:
         case WSGV:
-        case DALG: {
+        case DALT: {
             intr_internal(cpu, e, fi, fa);
         } break;
 
