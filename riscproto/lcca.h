@@ -85,6 +85,10 @@ typedef enum {
     XSGV,      // Execute Segmentation Fault
     DALG,      // Data Alignment Trap
     XALG,      // Execute Alignment Trap
+    IPLV,      // Instruction Protection Level Trap
+
+    OVRF,      // Arithmetic Overflow Trap
+    DIVZ,      // Divide By Zero Trap
 
     TIME = 32, // Timer
     SVCT = 48  // Supervisor Call Trap
