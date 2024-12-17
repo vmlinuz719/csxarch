@@ -330,7 +330,7 @@ void lcca64_ls_ap_5(lcca_t *cpu, uint32_t inst) {
 
         case 3: {
             if (cpu->c_regs[CR_PSQ] && CR_PSQ_PL) {
-                error(cpu, IPLV, inst, 0);
+                error(cpu, IPLT, inst, 0);
                 return;
             }
 
@@ -346,7 +346,7 @@ void lcca64_ls_ap_5(lcca_t *cpu, uint32_t inst) {
 
         case 4: {
             if (cpu->c_regs[CR_PSQ] && CR_PSQ_PL) {
-                error(cpu, IPLV, inst, 0);
+                error(cpu, IPLT, inst, 0);
                 return;
             }
 
@@ -368,7 +368,7 @@ void lcca64_ls_ap_5(lcca_t *cpu, uint32_t inst) {
             }
 
             if (cpu->c_regs[CR_PSQ] && CR_PSQ_PL) {
-                error(cpu, IPLV, inst, 0);
+                error(cpu, IPLT, inst, 0);
                 return;
             }
 
@@ -385,7 +385,7 @@ void lcca64_ls_ap_5(lcca_t *cpu, uint32_t inst) {
 
         case 7: {
             if (cpu->c_regs[CR_PSQ] && CR_PSQ_PL) {
-                error(cpu, IPLV, inst, 0);
+                error(cpu, IPLT, inst, 0);
                 return;
             }
 

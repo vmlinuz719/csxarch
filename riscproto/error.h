@@ -16,7 +16,7 @@ typedef enum {
     XSGV,      // Execute Segmentation Fault
     DALT,      // Data Alignment Trap
     XALT,      // Execute Alignment Trap
-    IPLV,      // Instruction Protection Level Trap
+    IPLT,      // Instruction Protection Level Trap
 
     OVRF,      // Arithmetic Overflow Trap
     DIVZ,      // Divide By Zero Trap

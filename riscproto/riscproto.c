@@ -88,7 +88,7 @@ void error(lcca_t *cpu, lcca_error_t e, uint64_t fi, uint64_t fa) {
 
         case PBRK:
         case EMLT:
-        case IPLV:
+        case IPLT:
         case SVCT: {
             intr_internal(cpu, e, fi, 0);
         } break;
