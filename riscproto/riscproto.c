@@ -173,6 +173,8 @@ int main(int argc, char *argv[]) {
     cpu.operations[4] = lcca64_im_4;
     cpu.operations[5] = lcca64_ls_ap_5;
     cpu.c_regs[CR_OD0] = 0xFFFFFFFFFFFFC00 | CR_OD_X | CR_OD_W;
+    cpu.c_regs[CR_OB0 + 1] = 0xFFFF000000000000;
+    cpu.c_regs[CR_OD0 + 1] = 0xFFFFFFFFFC00 | CR_OD_X | CR_OD_W | CR_OD_C;
     pthread_mutex_init(&(cpu.intr_mutex), NULL);
 
     cpu.running = 1;

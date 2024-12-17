@@ -76,19 +76,6 @@ void lcca64_br_1(lcca_t *cpu, uint32_t inst) {
     }
 }
 
-typedef enum {
-    READ = CR_OD_R | (1 << 10),
-    WRITE = CR_OD_W | CR_OD_w,
-    FETCH = CR_OD_X | CR_OD_x
-} lcca_access_t;
-
-typedef enum {
-    CHAR = 0,
-    WORD,
-    LONG,
-    QUAD
-} lcca_size_t;
-
 uint64_t translate(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_access_t access_type, lcca_error_t *e) {
     if (!(cpu->c_regs[CR_PSQ] && CR_PSQ_TE)) return addr;
 
@@ -98,13 +85,13 @@ uint64_t translate(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_access_t a
     }
 
     uint64_t object = addr >> 60;
-    uint64_t base = cpu->c_regs[CR_OB0 + object];
+    uint64_t base = cpu->c_regs[CR_OB0 + object] & 0xFFFFFFFFFFFFFC00;
 
-    uint64_t obj_size = cpu->c_regs[CR_OD0 + object] & 0x0FFFFFFFFFFFFC00;
+    uint64_t limit = cpu->c_regs[CR_OD0 + object] & 0x0FFFFFFFFFFFFC00;
     uint64_t rights = cpu->c_regs[CR_OD0 + object] & 0x3FF;
 
     uint64_t offset = addr & 0x0FFFFFFFFFFFFFFF;
-    if (offset >= obj_size) {
+    if (offset >> 10 > limit >> 10) {
         switch (access_type) {
             case READ: *e = RSGV; break;
             case WRITE: *e = WSGV; break;
@@ -124,6 +111,10 @@ uint64_t translate(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_access_t a
             case FETCH: *e = XSGV; break;
         }
         return 0;
+    }
+
+    if (access_type == WRITE) {
+        cpu->c_regs[CR_OD0 + object] |= CR_OD_D;
     }
 
     return base + offset;
@@ -285,9 +276,9 @@ void simdbg_0(lcca_t *cpu, uint32_t inst) {
 
         case 3: {
             for (int i = 0; i < 16; i++) {
-                printf("Object %01X: %14lX (", i, cpu->c_regs[CR_OB0 + i] >> 10);
+                printf("Object %01X: %16lX (", i, cpu->c_regs[CR_OB0 + i]);
                 print_bits(cpu->c_regs[CR_OD0 + i], d_bits);
-                printf(") +%-13lX\n", cpu->c_regs[CR_OD0 + i] >> 10);
+                printf(") + %16lX\n", cpu->c_regs[CR_OD0 + i] & 0x0FFFFFFFFFFFFC00);
             }
         } break;
 

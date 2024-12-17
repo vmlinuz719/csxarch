@@ -108,6 +108,21 @@ void lcca64_im_3(lcca_t *, uint32_t);
 void lcca64_im_4(lcca_t *, uint32_t);
 void lcca64_ls_ap_5(lcca_t *, uint32_t);
 
+typedef enum {
+    READ = CR_OD_R | (1 << 10),
+    WRITE = CR_OD_W | CR_OD_w,
+    FETCH = CR_OD_X | CR_OD_x
+} lcca_access_t;
+
+typedef enum {
+    CHAR = 0,
+    WORD,
+    LONG,
+    QUAD
+} lcca_size_t;
+
+uint64_t translate(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_access_t access_type, lcca_error_t *e);
+
 void *lcca_run(lcca_t *);
 
 void lcca64_print(lcca_t *);
