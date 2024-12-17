@@ -76,6 +76,59 @@ void lcca64_br_1(lcca_t *cpu, uint32_t inst) {
     }
 }
 
+typedef enum {
+    READ = CR_OD_R | (1 << 10),
+    WRITE = CR_OD_W | CR_OD_w,
+    FETCH = CR_OD_X | CR_OD_x
+} lcca_access_t;
+
+typedef enum {
+    CHAR = 0,
+    WORD,
+    LONG,
+    QUAD
+} lcca_size_t;
+
+uint64_t translate(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_access_t access_type, lcca_error_t *e) {
+    if (!(cpu->c_regs[CR_PSQ] && CR_PSQ_TE)) return addr;
+
+    if (addr & ((1 << size) - 1)) {
+        *e = access_type == FETCH ? XALG : DALG;
+        return 0;
+    }
+
+    uint64_t object = addr >> 60;
+    uint64_t base = cpu->c_regs[CR_OB0 + object];
+
+    uint64_t obj_size = cpu->c_regs[CR_OD0 + object] & 0x0FFFFFFFFFFFFC00;
+    uint64_t rights = cpu->c_regs[CR_OD0 + object] & 0x3FF;
+
+    uint64_t offset = addr & 0x0FFFFFFFFFFFFFFF;
+    if (offset >= obj_size) {
+        switch (access_type) {
+            case READ: *e = RSGV; break;
+            case WRITE: *e = WSGV; break;
+            case FETCH: *e = XSGV; break;
+        }
+        return 0;
+    }
+
+    rights &= (cpu->c_regs[CR_PSQ] && CR_PSQ_PL)
+        ? (CR_OD_R | CR_OD_x | CR_OD_w)
+        : (CR_OD_X | CR_OD_W | (1 << 10));
+    
+    if (!(rights & access_type)) {
+        switch (access_type) {
+            case READ: *e = RSGV; break;
+            case WRITE: *e = WSGV; break;
+            case FETCH: *e = XSGV; break;
+        }
+        return 0;
+    }
+
+    return base + offset;
+}
+
 void lcca64_ls_2(lcca_t *cpu, uint32_t inst) {
     uint64_t c = get_reg_q(cpu, RC(inst));
     uint64_t d = LS_DISP(inst);
