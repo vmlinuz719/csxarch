@@ -2,15 +2,27 @@
 #define _ERROR_
 
 typedef enum {
-    OK = 0,
-    PAGE_FAULT,
-    BUS_ERROR,
-    ERR_ALIGN,
-    ILLEGAL_INSTRUCTION,
-    PRIVILEGE_VIOLATION,
-    DIVIDE_BY_ZERO,
-    DECIMAL_FORMAT,
-    NO_SUCH_CR
+    MCHK = 0,  // Machine Check
+    CPRC,      // Coprocessor Exception
+    PWRF,      // Power Failure Imminent
+    WDOG,      // Non-Maskable Interrupt
+    EXTN,      // External Interrupt
+    PBRK,      // Program Counter Breakpoint
+    BERR,      // Bus Error
+    EMLT,      // Emulation Trap/Control Register Not Present
+
+    RSGV,      // Read Segmentation Fault
+    WSGV,      // Write Segmentation Fault
+    XSGV,      // Execute Segmentation Fault
+    DALG,      // Data Alignment Trap
+    XALG,      // Execute Alignment Trap
+    IPLV,      // Instruction Protection Level Trap
+
+    OVRF,      // Arithmetic Overflow Trap
+    DIVZ,      // Divide By Zero Trap
+
+    TIME = 32, // Timer
+    SVCT = 48  // Supervisor Call Trap
 } lcca_error_t;
 
 #endif

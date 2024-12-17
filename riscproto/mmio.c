@@ -3,6 +3,7 @@
 
 #include "byteswap.h"
 #include "error.h"
+#include "lcca.h"
 #include "mmio.h"
 
 // TODO: figure out why the correct endianness isn't being detected in the header
@@ -25,7 +26,7 @@ uint64_t read_u1b(lcca_bus_t *r, uint64_t a, lcca_error_t *e) {
 
     if (a < MMIO_BASE) {
         if (a > r->mem_limit - 1) {
-            *e = BUS_ERROR;
+            *e = BERR;
             return 0;
         }
 
@@ -40,7 +41,7 @@ uint64_t read_u1b(lcca_bus_t *r, uint64_t a, lcca_error_t *e) {
             || r->mmio[unit].ctx == NULL
             || r->mmio[unit].read == NULL
         ) {
-            *e = BUS_ERROR;
+            *e = BERR;
             return 0;
         }
 
@@ -61,13 +62,13 @@ uint64_t read_u2b(lcca_bus_t *r, uint64_t a, lcca_error_t *e) {
 
     // require 2-byte alignment
     if (a % 2) {
-        if (e != NULL) *e = ERR_ALIGN;
+        if (e != NULL) *e = DALG;
         return 0;
     }
 
     if (a < MMIO_BASE) {
         if (a > r->mem_limit - 2) {
-            *e = BUS_ERROR;
+            *e = BERR;
             return 0;
         }
 
@@ -86,7 +87,7 @@ uint64_t read_u2b(lcca_bus_t *r, uint64_t a, lcca_error_t *e) {
             || r->mmio[unit].ctx == NULL
             || r->mmio[unit].read == NULL
         ) {
-            *e = BUS_ERROR;
+            *e = BERR;
             return 0;
         }
 
@@ -107,13 +108,13 @@ uint64_t read_u4b(lcca_bus_t *r, uint64_t a, lcca_error_t *e) {
 
     // require 4-byte alignment
     if (a % 4) {
-        if (e != NULL) *e = ERR_ALIGN;
+        if (e != NULL) *e = DALG;
         return 0;
     }
 
     if (a < MMIO_BASE) {
         if (a > r->mem_limit - 4) {
-            *e = BUS_ERROR;
+            *e = BERR;
             return 0;
         }
 
@@ -132,7 +133,53 @@ uint64_t read_u4b(lcca_bus_t *r, uint64_t a, lcca_error_t *e) {
             || r->mmio[unit].ctx == NULL
             || r->mmio[unit].read == NULL
         ) {
-            *e = BUS_ERROR;
+            *e = BERR;
+            return 0;
+        }
+
+        uint64_t result = r->mmio[unit].read(
+            r->mmio[unit].ctx,
+            4,
+            MMIO_REGISTER(a),
+            e
+        );
+
+        if (*e) return 0;
+        else return result;
+    }
+}
+
+uint64_t fetch_u4b(lcca_bus_t *r, uint64_t a, lcca_error_t *e) {
+    uint8_t *m = r->memory;
+
+    // require 4-byte alignment
+    if (a % 4) {
+        if (e != NULL) *e = XALG;
+        return 0;
+    }
+
+    if (a < MMIO_BASE) {
+        if (a > r->mem_limit - 4) {
+            *e = BERR;
+            return 0;
+        }
+
+#ifdef __CSX_LITTLE_ENDIAN__
+        uint64_t result = (uint64_t) bswap_32(*((uint32_t *) (m + a)));
+#else
+        uint64_t result = (uint64_t) (*((uint32_t *) (m + a)));
+#endif
+        return result;
+    }
+
+    else {
+        int unit = MMIO_UNIT(a);
+        if (
+            unit >= r->num_units
+            || r->mmio[unit].ctx == NULL
+            || r->mmio[unit].read == NULL
+        ) {
+            *e = BERR;
             return 0;
         }
 
@@ -153,13 +200,13 @@ uint64_t read_8b(lcca_bus_t *r, uint64_t a, lcca_error_t *e) {
 
     // require 8-byte alignment
     if (a % 8) {
-        if (e != NULL) *e = ERR_ALIGN;
+        if (e != NULL) *e = DALG;
         return 0;
     }
 
     if (a < MMIO_BASE) {
         if (a > r->mem_limit - 8) {
-            *e = BUS_ERROR;
+            *e = BERR;
             return 0;
         }
 
@@ -178,7 +225,7 @@ uint64_t read_8b(lcca_bus_t *r, uint64_t a, lcca_error_t *e) {
             || r->mmio[unit].ctx == NULL
             || r->mmio[unit].read == NULL
         ) {
-            *e = BUS_ERROR;
+            *e = BERR;
             return 0;
         }
 
@@ -200,7 +247,7 @@ void write_1b(lcca_bus_t *r, uint64_t a, uint64_t v, lcca_error_t *e) {
 
     if (a < MMIO_BASE) {
         if (a > r->mem_limit - 1) {
-            *e = BUS_ERROR;
+            *e = BERR;
             return;
         }
 
@@ -214,7 +261,7 @@ void write_1b(lcca_bus_t *r, uint64_t a, uint64_t v, lcca_error_t *e) {
             || r->mmio[unit].ctx == NULL
             || r->mmio[unit].write == NULL
         ) {
-            *e = BUS_ERROR;
+            *e = BERR;
             return;
         }
 
@@ -233,13 +280,13 @@ void write_2b(lcca_bus_t *r, uint64_t a, uint64_t v, lcca_error_t *e) {
 
     // require 2-byte alignment
     if (a % 2) {
-        if (e != NULL) *e = ERR_ALIGN;
+        if (e != NULL) *e = DALG;
         return;
     }
 
     if (a < MMIO_BASE) {
         if (a > r->mem_limit - 2) {
-            *e = BUS_ERROR;
+            *e = BERR;
             return;
         }
 
@@ -257,7 +304,7 @@ void write_2b(lcca_bus_t *r, uint64_t a, uint64_t v, lcca_error_t *e) {
             || r->mmio[unit].ctx == NULL
             || r->mmio[unit].write == NULL
         ) {
-            *e = BUS_ERROR;
+            *e = BERR;
             return;
         }
 
@@ -276,13 +323,13 @@ void write_4b(lcca_bus_t *r, uint64_t a, uint64_t v, lcca_error_t *e) {
 
     // require 4-byte alignment
     if (a % 4) {
-        if (e != NULL) *e = ERR_ALIGN;
+        if (e != NULL) *e = DALG;
         return;
     }
 
     if (a < MMIO_BASE) {
         if (a > r->mem_limit - 4) {
-            *e = BUS_ERROR;
+            *e = BERR;
             return;
         }
 
@@ -300,7 +347,7 @@ void write_4b(lcca_bus_t *r, uint64_t a, uint64_t v, lcca_error_t *e) {
             || r->mmio[unit].ctx == NULL
             || r->mmio[unit].write == NULL
         ) {
-            *e = BUS_ERROR;
+            *e = BERR;
             return;
         }
 
@@ -319,13 +366,13 @@ void write_8b(lcca_bus_t *r, uint64_t a, uint64_t v, lcca_error_t *e) {
 
     // require 8-byte alignment
     if (a % 8) {
-        if (e != NULL) *e = ERR_ALIGN;
+        if (e != NULL) *e = DALG;
         return;
     }
 
     if (a < MMIO_BASE) {
         if (a > r->mem_limit - 8) {
-            *e = BUS_ERROR;
+            *e = BERR;
             return;
         }
 
@@ -343,7 +390,7 @@ void write_8b(lcca_bus_t *r, uint64_t a, uint64_t v, lcca_error_t *e) {
             || r->mmio[unit].ctx == NULL
             || r->mmio[unit].write == NULL
         ) {
-            *e = BUS_ERROR;
+            *e = BERR;
             return;
         }
 

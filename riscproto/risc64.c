@@ -85,50 +85,60 @@ void lcca64_ls_2(lcca_t *cpu, uint32_t inst) {
     uint64_t result;
     int writeback = 1;
 
+    uint64_t addr;
+
     // TODO: Translate address and check access rights
 
     switch (FN(inst)) {
         case 0: {
-            result = read_u1b(cpu->bus, (c + d), &e);
+            addr = c + d;
+            result = read_u1b(cpu->bus, addr, &e);
             result = EXT8(result);
         } break;
 
         case 1: {
-            result = read_u1b(cpu->bus, (c + d), &e);
+            addr = c + d;
+            result = read_u1b(cpu->bus, addr, &e);
         } break;
 
         case 2: {
-            result = read_u2b(cpu->bus, (c + (d << 1)), &e);
+            addr = (c + (d << 1));
+            result = read_u2b(cpu->bus, addr, &e);
             result = EXT16(result);
         } break;
 
         case 3: {
-            result = read_u2b(cpu->bus, (c + (d << 1)), &e);
+            addr = (c + (d << 1));
+            result = read_u2b(cpu->bus, addr, &e);
         } break;
 
         case 4: {
-            result = read_u4b(cpu->bus, (c + (d << 2)), &e);
+            addr = (c + (d << 2));
+            result = read_u4b(cpu->bus, addr, &e);
             result = EXT32(result);
         } break;
 
         case 5: {
             writeback = 0;
-            write_1b(cpu->bus, (c + d), get_reg_q(cpu, RA(inst)), &e);
+            addr = c + d;
+            write_1b(cpu->bus, addr, get_reg_q(cpu, RA(inst)), &e);
         } break;
 
         case 6: {
             writeback = 0;
-            write_2b(cpu->bus, (c + (d << 1)), get_reg_q(cpu, RA(inst)), &e);
+            addr = (c + (d << 1));
+            write_2b(cpu->bus, addr, get_reg_q(cpu, RA(inst)), &e);
         } break;
 
         case 7: {
             writeback = 0;
-            write_4b(cpu->bus, (c + (d << 2)), get_reg_q(cpu, RA(inst)), &e);
+            addr = (c + (d << 2));
+            write_4b(cpu->bus, addr, get_reg_q(cpu, RA(inst)), &e);
         } break;
     }
 
     if (e) {
-        error(cpu, e);
+        error(cpu, e, inst, addr);
     }
 
     else if (writeback) {
@@ -168,11 +178,11 @@ const char *cr_names[] = {
 };
 
 static inline void print_regs(uint64_t *regs, const char *names[]) {
-    int index = 0;
+    int index = 0, r_index = 0;
     int newline_ctr = 0;
 
     while (1) {
-        printf("%s: %16lX ", names[index], regs[index]);
+        printf("%s: %16lX ", names[index], regs[r_index++]);
         if (names[++index] == NULL) {
             printf("\n\n");
             newline_ctr = 0;
@@ -244,26 +254,35 @@ void lcca64_ls_ap_5(lcca_t *cpu, uint32_t inst) {
     uint64_t result;
     int writeback = 1;
 
+    uint64_t addr;
+
     // TODO: Translate address and check access rights
 
     switch (FN(inst)) {
         case 0: {
-            result = read_u4b(cpu->bus, (c + (d << 2)), &e);
+            addr = (c + (d << 2));
+            result = read_u4b(cpu->bus, addr, &e);
         } break;
 
         case 1: {
-            result = read_8b(cpu->bus, (c + (d << 3)), &e);
+            addr = (c + (d << 3));
+            result = read_8b(cpu->bus, addr, &e);
         } break;
 
         case 2: {
             writeback = 0;
-            write_8b(cpu->bus, (c + (d << 3)), get_reg_q(cpu, RA(inst)), &e);
+            addr = (c + (d << 3));
+            write_8b(cpu->bus, addr, get_reg_q(cpu, RA(inst)), &e);
         } break;
 
         case 3: {
-            // TODO: check protection level
+            if (cpu->c_regs[CR_PSQ] && CR_PSQ_PL) {
+                error(cpu, IPLV, inst, 0);
+                return;
+            }
+
             if (d < 0 || d > CR_MAX) {
-                error(cpu, NO_SUCH_CR);
+                error(cpu, EMLT, inst, 0);
                 return;
             }
 
@@ -273,9 +292,13 @@ void lcca64_ls_ap_5(lcca_t *cpu, uint32_t inst) {
         } break;
 
         case 4: {
-            // TODO: check protection level
+            if (cpu->c_regs[CR_PSQ] && CR_PSQ_PL) {
+                error(cpu, IPLV, inst, 0);
+                return;
+            }
+
             if (d < 0 || d > CR_MAX) {
-                error(cpu, NO_SUCH_CR);
+                error(cpu, EMLT, inst, 0);
                 return;
             }
 
@@ -286,10 +309,13 @@ void lcca64_ls_ap_5(lcca_t *cpu, uint32_t inst) {
         } break;
         
         case 5: {
-            // TODO: check protection level
             if (d != 0) {
-                // TODO: CSX-ism REX => SVC when d != 0
-                error(cpu, ILLEGAL_INSTRUCTION);
+                error(cpu, SVCT, inst, 0);
+                return;
+            }
+
+            if (cpu->c_regs[CR_PSQ] && CR_PSQ_PL) {
+                error(cpu, IPLV, inst, 0);
                 return;
             }
 
@@ -300,19 +326,23 @@ void lcca64_ls_ap_5(lcca_t *cpu, uint32_t inst) {
         } break;
 
         case 6: {
-            intr_internal(cpu, d & 63);
+            intr_internal(cpu, d & 63, inst, cpu->pc);
             return;
         }
 
         case 7: {
-            // TODO: check protection level
+            if (cpu->c_regs[CR_PSQ] && CR_PSQ_PL) {
+                error(cpu, IPLV, inst, 0);
+                return;
+            }
+
             simdbg_0(cpu, inst);
             return;
         }
     }
 
     if (e) {
-        error(cpu, e);
+        error(cpu, e, inst, addr);
     }
 
     else if (writeback) {

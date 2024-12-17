@@ -35,6 +35,7 @@ typedef struct lcca_bus_t {
 uint64_t read_u1b(lcca_bus_t *r, uint64_t a, lcca_error_t *e);
 uint64_t read_u2b(lcca_bus_t *r, uint64_t a, lcca_error_t *e);
 uint64_t read_u4b(lcca_bus_t *r, uint64_t a, lcca_error_t *e);
+uint64_t fetch_u4b(lcca_bus_t *r, uint64_t a, lcca_error_t *e);
 uint64_t read_8b(lcca_bus_t *r, uint64_t a, lcca_error_t *e);
 void write_1b(lcca_bus_t *r, uint64_t a, uint64_t v, lcca_error_t *e);
 void write_2b(lcca_bus_t *r, uint64_t a, uint64_t v, lcca_error_t *e);

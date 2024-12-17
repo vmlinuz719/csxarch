@@ -5,6 +5,7 @@
 #include <pthread.h>
 
 #include "error.h"
+#include "mmio.h"
 
 #define EXT4(x)             ((x) & (1L << 3)  ? (x) | 0xFFFFFFFFFFFFFFF0 : (x))
 #define EXT8(x)             ((x) & (1L << 7)  ? (x) | 0xFFFFFFFFFFFFFF00 : (x))
@@ -70,30 +71,6 @@
 #define R_ABI_SP            30
 #define R_ABI_LR            31
 
-typedef enum {
-    MCHK = 0,  // Machine Check
-    CPRC,      // Coprocessor Exception
-    PWRF,      // Power Failure Imminent
-    WDOG,      // Non-Maskable Interrupt
-    EXTN,      // External Interrupt
-    PBRK,      // Program Counter Breakpoint
-    BERR,      // Bus Error
-    EMLT,      // Emulation Trap/Control Register Not Present
-
-    RSGV,      // Read Segmentation Fault
-    WSGV,      // Write Segmentation Fault
-    XSGV,      // Execute Segmentation Fault
-    DALG,      // Data Alignment Trap
-    XALG,      // Execute Alignment Trap
-    IPLV,      // Instruction Protection Level Trap
-
-    OVRF,      // Arithmetic Overflow Trap
-    DIVZ,      // Divide By Zero Trap
-
-    TIME = 32, // Timer
-    SVCT = 48  // Supervisor Call Trap
-} lcca_intr_t;
-
 typedef struct lcca_t {
     lcca_bus_t *bus;
     pthread_t *run;
@@ -119,9 +96,9 @@ uint64_t sar(uint64_t, uint64_t);
 uint64_t sh(uint64_t, int);
 uint64_t sha(uint64_t, int);
 
-void error(lcca_t *, uint64_t);
+void error(lcca_t *cpu, lcca_error_t e, uint64_t fi, uint64_t fa);
 
-void intr_internal(lcca_t *cpu, int which);
+void intr_internal(lcca_t *cpu, int which, uint64_t fi, uint64_t fa);
 void intr_restore(lcca_t *cpu);
 
 void lcca64_rr_0(lcca_t *, uint32_t);

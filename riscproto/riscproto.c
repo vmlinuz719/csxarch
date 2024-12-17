@@ -53,7 +53,7 @@ uint64_t sha(uint64_t x, int shamt) {
     else return shl(x, shamt);
 }
 
-void intr_internal(lcca_t *cpu, int which) {
+void intr_internal(lcca_t *cpu, int which, uint64_t fi, uint64_t fa) {
     cpu->c_regs[CR_APC] = cpu->pc;
     cpu->c_regs[CR_APSQ] = cpu->c_regs[CR_PSQ];
 
@@ -65,6 +65,8 @@ void intr_internal(lcca_t *cpu, int which) {
 
     cpu->c_regs[CR_PSQ] &= CR_PSQ_INTR_ENTRY_MASK;
     cpu->pc = cpu->c_regs[CR_IA] + (4 * IA_HANDLER_INSTS) * which;
+    cpu->c_regs[CR_FI] = fi;
+    cpu->c_regs[CR_FA] = fa;
 }
 
 void intr_restore(lcca_t *cpu) {
@@ -78,25 +80,46 @@ void intr_restore(lcca_t *cpu) {
     }
 }
 
-void error(lcca_t *cpu, uint64_t e) {
-    // TODO: Handle errors
-    cpu->running = 0;
+void error(lcca_t *cpu, lcca_error_t e, uint64_t fi, uint64_t fa) {
+    switch (e) {
+        case CPRC: {
+            intr_internal(cpu, e, 0, fa);
+        } break;
+
+        case PBRK:
+        case EMLT:
+        case IPLV:
+        case SVCT: {
+            intr_internal(cpu, e, fi, 0);
+        } break;
+
+        case BERR:
+        case RSGV:
+        case WSGV:
+        case DALG: {
+            intr_internal(cpu, e, fi, fa);
+        } break;
+
+        default: {
+            intr_internal(cpu, e, 0, 0);
+        }
+    }
 }
 
 void *lcca_run(lcca_t *cpu) {
-    // TODO: Interrupts
+    // TODO: External interrupts
 
     lcca_bus_t *bus = cpu->bus;
     lcca_error_t fetch_error = 0;
 
     while(cpu->running) {
-        uint32_t inst = read_u4b(bus, cpu->pc, &fetch_error);
-        if (fetch_error) error(cpu, fetch_error);
+        uint32_t inst = fetch_u4b(bus, cpu->pc, &fetch_error);
+        cpu->pc += 4;
+        if (fetch_error) error(cpu, fetch_error, 0, cpu->pc);
         else {
             void (*operation) (struct lcca_t *, uint32_t) = cpu->operations[OPCODE(inst)];
-            if (operation == NULL) error(cpu, ILLEGAL_INSTRUCTION);
+            if (operation == NULL) error(cpu, EMLT, inst, cpu->pc);
             else {
-                cpu->pc += 4;
                 operation(cpu, inst);
             }
         }
