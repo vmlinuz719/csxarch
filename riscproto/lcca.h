@@ -70,6 +70,26 @@
 #define R_ABI_SP            30
 #define R_ABI_LR            31
 
+typedef enum {
+    MCHK = 0,  // Machine Check
+    CPRC,      // Coprocessor Exception
+    PWRF,      // Power Failure Imminent
+    WDOG,      // Non-Maskable Interrupt
+    EXTN,      // External Interrupt
+    PBRK,      // Program Counter Breakpoint
+    BERR,      // Bus Error
+    EMLT,      // Emulation Trap/Control Register Not Present
+
+    RSGV,      // Read Segmentation Fault
+    WSGV,      // Write Segmentation Fault
+    XSGV,      // Execute Segmentation Fault
+    DALG,      // Data Alignment Trap
+    XALG,      // Execute Alignment Trap
+
+    TIME = 32, // Timer
+    SVCT = 48  // Supervisor Call Trap
+} lcca_intr_t;
+
 typedef struct lcca_t {
     lcca_bus_t *bus;
     pthread_t *run;
