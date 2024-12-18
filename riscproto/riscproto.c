@@ -110,16 +110,21 @@ void *lcca_run(lcca_t *cpu) {
     // TODO: External interrupts
 
     lcca_bus_t *bus = cpu->bus;
-    lcca_error_t fetch_error = 0;
+    lcca_error_t fetch_error;
 
     while(cpu->running) {
-        uint32_t inst = fetch_u4b(bus, cpu->pc, &fetch_error);
-        cpu->pc += 4;
-        if (fetch_error) error(cpu, fetch_error, 0, cpu->pc);
+        fetch_error = 0;
+        uint32_t inst;
+        uint64_t addr = translate(cpu, cpu->pc, LONG, FETCH, &fetch_error);
+        if (!fetch_error) {
+            inst = fetch_u4b(bus, addr, &fetch_error);
+        }
+        if (fetch_error) error(cpu, fetch_error, 0, addr);
         else {
             void (*operation) (struct lcca_t *, uint32_t) = cpu->operations[OPCODE(inst)];
             if (operation == NULL) error(cpu, EMLT, inst, cpu->pc);
             else {
+                cpu->pc += 4;
                 operation(cpu, inst);
             }
         }
@@ -174,7 +179,7 @@ int main(int argc, char *argv[]) {
     cpu.operations[5] = lcca64_ls_ap_5;
     cpu.c_regs[CR_OD0] = 0xFFFFFFFFFFFFC00 | CR_OD_X | CR_OD_W;
     cpu.c_regs[CR_OB0 + 1] = 0xFFFF000000000000;
-    cpu.c_regs[CR_OD0 + 1] = 0xFFFFFFFFFC00 | CR_OD_X | CR_OD_W | CR_OD_C;
+    cpu.c_regs[CR_OD0 + 1] = 0xFFFFFFFFFC00 | CR_OD_W | CR_OD_C;
     pthread_mutex_init(&(cpu.intr_mutex), NULL);
 
     cpu.running = 1;

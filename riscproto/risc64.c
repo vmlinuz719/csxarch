@@ -77,7 +77,7 @@ void lcca64_br_1(lcca_t *cpu, uint32_t inst) {
 }
 
 uint64_t translate(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_access_t access_type, lcca_error_t *e) {
-    if (!(cpu->c_regs[CR_PSQ] && CR_PSQ_TE)) return addr;
+    if (!(cpu->c_regs[CR_PSQ] & CR_PSQ_TE)) return addr;
 
     if (addr & ((1 << size) - 1)) {
         *e = access_type == FETCH ? XALT : DALT;
@@ -100,10 +100,10 @@ uint64_t translate(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_access_t a
         return 0;
     }
 
-    rights &= (cpu->c_regs[CR_PSQ] && CR_PSQ_PL)
+    rights &= (cpu->c_regs[CR_PSQ] & CR_PSQ_PL)
         ? (CR_OD_R | CR_OD_x | CR_OD_w)
         : (CR_OD_X | CR_OD_W | (1 << 10));
-    
+
     if (!(rights & access_type)) {
         switch (access_type) {
             case READ: *e = RSGV; break;
@@ -117,6 +117,7 @@ uint64_t translate(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_access_t a
         cpu->c_regs[CR_OD0 + object] |= CR_OD_D;
     }
 
+    // printf("A %lX\n", base + offset);
     return base + offset;
 }
 
@@ -131,53 +132,67 @@ void lcca64_ls_2(lcca_t *cpu, uint32_t inst) {
 
     uint64_t addr;
 
-    // TODO: Translate address and check access rights
-
     switch (FN(inst)) {
         case 0: {
-            addr = c + d;
-            result = read_u1b(cpu->bus, addr, &e);
-            result = EXT8(result);
+            addr = translate(cpu, c + d, CHAR, READ, &e);
+            if (!e) {
+                result = read_u1b(cpu->bus, addr, &e);
+                result = EXT8(result);
+            }
         } break;
 
         case 1: {
-            addr = c + d;
-            result = read_u1b(cpu->bus, addr, &e);
+            addr = translate(cpu, c + d, CHAR, READ, &e);
+            if (!e) {
+                result = read_u1b(cpu->bus, addr, &e);
+            }
         } break;
 
         case 2: {
-            addr = (c + (d << 1));
-            result = read_u2b(cpu->bus, addr, &e);
-            result = EXT16(result);
+            addr = translate(cpu, c + (d << 1), WORD, READ, &e);
+            if (!e) {
+                result = read_u2b(cpu->bus, addr, &e);
+                result = EXT16(result);
+            }
         } break;
 
         case 3: {
-            addr = (c + (d << 1));
-            result = read_u2b(cpu->bus, addr, &e);
+            addr = translate(cpu, c + (d << 1), WORD, READ, &e);
+            if (!e) {
+                result = read_u2b(cpu->bus, addr, &e);
+            }
         } break;
 
         case 4: {
-            addr = (c + (d << 2));
-            result = read_u4b(cpu->bus, addr, &e);
-            result = EXT32(result);
+            addr = translate(cpu, c + (d << 2), LONG, READ, &e);
+            if (!e) {
+                result = read_u4b(cpu->bus, addr, &e);
+                result = EXT32(result);
+            }
         } break;
 
         case 5: {
             writeback = 0;
-            addr = c + d;
-            write_1b(cpu->bus, addr, get_reg_q(cpu, RA(inst)), &e);
+            addr = translate(cpu, c + d, CHAR, WRITE, &e);
+            if (!e) {
+                write_1b(cpu->bus, addr, get_reg_q(cpu, RA(inst)), &e);
+            }
         } break;
 
         case 6: {
             writeback = 0;
-            addr = (c + (d << 1));
-            write_2b(cpu->bus, addr, get_reg_q(cpu, RA(inst)), &e);
+            addr = translate(cpu, c + (d << 1), WORD, WRITE, &e);
+            if (!e) {
+                write_2b(cpu->bus, addr, get_reg_q(cpu, RA(inst)), &e);
+            }
         } break;
 
         case 7: {
             writeback = 0;
-            addr = (c + (d << 2));
-            write_4b(cpu->bus, addr, get_reg_q(cpu, RA(inst)), &e);
+            addr = translate(cpu, c + (d << 2), LONG, WRITE, &e);
+            if (!e) {
+                write_4b(cpu->bus, addr, get_reg_q(cpu, RA(inst)), &e);
+            }
         } break;
     }
 
@@ -278,7 +293,7 @@ void simdbg_0(lcca_t *cpu, uint32_t inst) {
             for (int i = 0; i < 16; i++) {
                 printf("Object %01X: %16lX (", i, cpu->c_regs[CR_OB0 + i]);
                 print_bits(cpu->c_regs[CR_OD0 + i], d_bits);
-                printf(") + %16lX\n", cpu->c_regs[CR_OD0 + i] & 0x0FFFFFFFFFFFFC00);
+                printf(") + %15lX\n", cpu->c_regs[CR_OD0 + i] & 0x0FFFFFFFFFFFFC00);
             }
         } break;
 
@@ -300,27 +315,31 @@ void lcca64_ls_ap_5(lcca_t *cpu, uint32_t inst) {
 
     uint64_t addr;
 
-    // TODO: Translate address and check access rights
-
     switch (FN(inst)) {
         case 0: {
-            addr = (c + (d << 2));
-            result = read_u4b(cpu->bus, addr, &e);
+            addr = translate(cpu, c + (d << 2), LONG, READ, &e);
+            if (!e) {
+                result = read_u4b(cpu->bus, addr, &e);
+            }
         } break;
 
         case 1: {
-            addr = (c + (d << 3));
-            result = read_8b(cpu->bus, addr, &e);
+            addr = translate(cpu, c + (d << 3), QUAD, READ, &e);
+            if (!e) {
+                result = read_8b(cpu->bus, addr, &e);
+            }
         } break;
 
         case 2: {
             writeback = 0;
-            addr = (c + (d << 3));
-            write_8b(cpu->bus, addr, get_reg_q(cpu, RA(inst)), &e);
+            addr = translate(cpu, c + (d << 3), QUAD, WRITE, &e);
+            if (!e) {
+                write_8b(cpu->bus, addr, get_reg_q(cpu, RA(inst)), &e);
+            }
         } break;
 
         case 3: {
-            if (cpu->c_regs[CR_PSQ] && CR_PSQ_PL) {
+            if (cpu->c_regs[CR_PSQ] & CR_PSQ_PL) {
                 error(cpu, IPLT, inst, 0);
                 return;
             }
@@ -336,7 +355,7 @@ void lcca64_ls_ap_5(lcca_t *cpu, uint32_t inst) {
         } break;
 
         case 4: {
-            if (cpu->c_regs[CR_PSQ] && CR_PSQ_PL) {
+            if (cpu->c_regs[CR_PSQ] & CR_PSQ_PL) {
                 error(cpu, IPLT, inst, 0);
                 return;
             }
@@ -358,7 +377,7 @@ void lcca64_ls_ap_5(lcca_t *cpu, uint32_t inst) {
                 return;
             }
 
-            if (cpu->c_regs[CR_PSQ] && CR_PSQ_PL) {
+            if (cpu->c_regs[CR_PSQ] & CR_PSQ_PL) {
                 error(cpu, IPLT, inst, 0);
                 return;
             }
@@ -370,12 +389,17 @@ void lcca64_ls_ap_5(lcca_t *cpu, uint32_t inst) {
         } break;
 
         case 6: {
+            if (cpu->c_regs[CR_PSQ] & CR_PSQ_PL) {
+                error(cpu, IPLT, inst, 0);
+                return;
+            }
+            
             intr_internal(cpu, d & 63, inst, cpu->pc);
             return;
         }
 
         case 7: {
-            if (cpu->c_regs[CR_PSQ] && CR_PSQ_PL) {
+            if (cpu->c_regs[CR_PSQ] & CR_PSQ_PL) {
                 error(cpu, IPLT, inst, 0);
                 return;
             }
