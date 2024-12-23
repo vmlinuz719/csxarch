@@ -1,0 +1,9 @@
+; ASSEMBLER TEST FILE
+;   Test test test
+
+testlbl:abc def, ghi, jkl
+        abc def,
+            ghi,
+            jkl
+
+abc def,ghi,jkl
