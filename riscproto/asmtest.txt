@@ -1,9 +1,10 @@
 ; ASSEMBLER TEST FILE
 ;   Test test test
 
-testlbl:abc def, ghi, jkl
-        abc def,
-            ghi,
-            jkl
-
-abc def,ghi,jkl
+label:  do arg0,arg1,arg2 ; comment, blah blah blab
+        test 1,
+             2,
+             3,
+             4
+        
+        .fake_macro "TODO: this should be one token"

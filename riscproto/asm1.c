@@ -45,8 +45,8 @@ int get_token(FILE *f, int *line, int *col, char *result, int maxlen) {
             } else {
                 fseek(f, -1, SEEK_CUR);
             }
-            result[i++] = '\0';
-            return i - 1;
+            result[i] = '\0';
+            return i;
         } else {
             *col += 1;
         }
@@ -54,7 +54,34 @@ int get_token(FILE *f, int *line, int *col, char *result, int maxlen) {
         result[i++] = ch;
     }
 
+    if (i) {
+        result[i] = '\0';
+        return i;
+    }
+    
     return -1;
+}
+
+int get_args(FILE *f, int *line, int *col,
+    char **results, int maxargs, char *buf, int buflen) {
+    char event[MAX_EVENT_LEN];
+    int buf_index = 0;
+    int comma = 1;
+    int got_args = 0;
+    
+    while (comma && got_args < maxargs) {
+        int len = get_token(f, line, col, event, MAX_EVENT_LEN);
+        if (len == -1 || len == 0
+            || buf_index + len + 1 >= MAX_EVENT_LEN) return -1;
+        
+        if (event[len - 1] == ',') event[len - 1] = '\0';
+        else comma = 0;
+        
+        strcpy(buf + buf_index, event);
+        results[got_args++] = buf + buf_index; buf_index += len;
+    }
+    
+    return got_args;
 }
 
 int main(int argc, char *argv[]) {
@@ -70,13 +97,22 @@ int main(int argc, char *argv[]) {
     }
 
     char event[MAX_EVENT_LEN];
+    char *args[MAX_ARGS];
     int line = 0, col = 0;
+    
     int len;
     while ((len = get_token(in, &line, &col, event, MAX_EVENT_LEN))) {
-        printf("%8d:%-8d^%s$\n", line, col, event);
+        printf("%8d:%-8d^%s$ ", line, col, event);
+        
+        if (event[len - 1] != ':' && event[len - 1] != ',') {
+            int got_args = get_args(in, &line, &col, args, MAX_ARGS, event, MAX_EVENT_LEN);
+            for (int i = 0; i < got_args; i++) {
+                printf("arg %d: ^%s$ ", i, args[i]);
+            }
+        }
+        
+        printf("\n");
     }
-
+    
     return 0;
 }
-// label: instruction a,b,c,d
-// label2: instruction2 a, b, c, d ; some comments
