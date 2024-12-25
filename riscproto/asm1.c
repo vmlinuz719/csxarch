@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -5,6 +6,8 @@
 
 #define MAX_EVENT_LEN 256
 #define MAX_ARGS 32
+#define MAX_LABELS 512
+#define MAX_LABEL_LEN 16
 
 int consume_whitespace(FILE *f, int *line, int *col) {
     int num_consumed = 0;
@@ -83,6 +86,69 @@ int get_args(FILE *f, int *line, int *col,
     
     return got_args;
 }
+
+uint64_t get_label(
+    char *input,
+    char labels[MAX_LABELS][MAX_LABEL_LEN],
+    uint64_t values[MAX_LABELS], 
+    int n_labels, int *err
+) {
+    for (int i = 0; i < MAX_LABELS; i++) {
+        if (!strcmp(input, labels[i])) {
+            *err = 0;
+            return values[i];
+        }
+    }
+    
+    *err = -1;
+    return 0;
+}
+
+uint64_t get_number(
+    char *input,
+    uint64_t max,
+    int *err
+) {
+    int base, offset;
+    if (input[0] == '0') {
+        if (input[1] == 'x') {
+            offset = 2;
+            base = 16;
+        }
+        else {
+            offset = 1;
+            base = 8;
+        }
+    }
+    else {
+        offset = 0;
+        base = 10;
+    }
+    
+    char *endptr = NULL;
+    
+    uint64_t result = (base == 16) ?
+        strtoul(input + offset, &endptr, base) :
+        (uint64_t) strtol(input + offset, &endptr, base);
+    
+    if (errno == ERANGE || *endptr != '\0') {
+        errno = 0;
+        *err = -1;
+        return 0;
+    }
+    
+    int64_t s_min = -((int64_t) ((max >> 1) + 1));
+    if (((int64_t) result >= 0 && result > max)
+        || (int64_t) result < s_min) {
+        *err = -1;
+        return 0;
+    }
+    
+    *err = 0;
+    return result;
+}
+
+
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
