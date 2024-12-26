@@ -37,5 +37,15 @@ struct label_def *register_label(
     char *label,
     uint64_t value
 ) {
-    
+    if (search_label(ll, label) != NULL) return NULL;
+    if (ll->n_labels == ll->current_max_labels) {
+        ll->labels = realloc(
+            ll->labels,
+            (ll->current_max_labels + ADD_LABELS) * sizeof(struct label_def)
+        );
+        ll->current_max_labels += ADD_LABELS;
+    }
+    strcpy(ll->labels[ll->n_labels].label, label);
+    ll->labels[ll->n_labels].value = value;
+    return &(ll->labels[ll->n_labels++]);
 }

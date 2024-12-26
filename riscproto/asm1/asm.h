@@ -28,7 +28,7 @@ uint64_t get_control_register_literal(
 );
 
 struct label_def {
-    char label[17];
+    char label[MAX_LABEL_LEN + 1];
     uint64_t value;
 };
 
@@ -39,7 +39,7 @@ struct label_list {
 
 struct label_list *init_label_list();
 void destroy_label_list(struct label_list *ll);
-uint64_t *search_label(struct label_list *ll, char *label)
+uint64_t *search_label(struct label_list *ll, char *label);
 struct label_def *register_label(
     struct label_list *ll,
     char *label,
