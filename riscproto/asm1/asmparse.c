@@ -12,7 +12,7 @@ struct reg_def {
     int number;
 };
 
-static struct reg_def base_regs[32] = {
+static struct reg_def base_regs[] = {
     {"zr",  0 },
     
     {"ct",  1 },
@@ -53,7 +53,7 @@ static struct reg_def base_regs[32] = {
     {"lr",  31},
 };
 
-static struct reg_def control_regs[41] = {
+static struct reg_def control_regs[] = {
     {"psq", 0 },
     {"apc", 1 },
     {"aps", 2 },
@@ -147,7 +147,7 @@ uint64_t get_register_literal(
     char *input,
     int *err
 ) {
-    for (int i = 0; i < 32; i++) {
+    for (int i = 0; i < sizeof(base_regs) / sizeof(base_regs[0]); i++) {
         if (!strcmp(input, base_regs[i].name)) {
             return base_regs[i].number;
         }
@@ -160,7 +160,7 @@ uint64_t get_control_register_literal(
     char *input,
     int *err
 ) {
-    for (int i = 0; i < 41; i++) {
+    for (int i = 0; i < sizeof(control_regs) / sizeof(control_regs[0]); i++) {
         if (!strcmp(input, control_regs[i].name)) {
             return control_regs[i].number;
         }

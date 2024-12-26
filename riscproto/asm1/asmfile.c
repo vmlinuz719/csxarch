@@ -104,6 +104,8 @@ struct input_ctx *open_input(char *fname) {
         return NULL;
     }
     ic->ll = init_label_list();
+    ic->line = 0;
+    ic->col = 0;
     return ic;
 }
 
