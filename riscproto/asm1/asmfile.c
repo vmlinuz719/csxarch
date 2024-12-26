@@ -33,12 +33,20 @@ int consume_whitespace(FILE *f, int *line, int *col) {
 
 int get_token(FILE *f, int *line, int *col, char *result, int maxlen) {
     int ch = 0, i = 0;
+    int quoted = 0;
     
     if (consume_whitespace(f, line, col) == -1) return 0;
 
     while (i < maxlen - 2 && (ch = fgetc(f)) != EOF) {
-        if (ch == '\r' || ch == '\n' || ch == '\t' || ch == ' ' || ch == ';'
-            || ch == ',' || ch == ':') {
+        if (ch == '"') quoted ^= 1;
+        if (!quoted && (ch == '\r' ||
+                        ch == '\n' ||
+                        ch == '\t' ||
+                        ch == ' '  ||
+                        ch == ';'  ||
+                        ch == ','  ||
+                        ch == ':'
+        )) {
             if (ch == ',' || ch == ':') {
                 *col += 1;
                 result[i++] = ch;
@@ -47,6 +55,9 @@ int get_token(FILE *f, int *line, int *col, char *result, int maxlen) {
             }
             result[i] = '\0';
             return i;
+        } else if (quoted && ch == '\n') {
+            *col = 0;
+            *line += 1;
         } else {
             *col += 1;
         }
@@ -54,7 +65,7 @@ int get_token(FILE *f, int *line, int *col, char *result, int maxlen) {
         result[i++] = ch;
     }
 
-    if (i) {
+    if (i != 0 && i < maxlen - 1) {
         result[i] = '\0';
         return i;
     }
