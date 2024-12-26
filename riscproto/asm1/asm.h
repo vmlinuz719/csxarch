@@ -8,10 +8,18 @@
 #include <stdio.h>
 #include <stdint.h>
 
+struct input_ctx {
+    FILE *input;
+    int line, col;
+    struct label_list *ll;
+};
+
 int get_args(FILE *f, int *line, int *col,
     char **results, int maxargs, char *buf, int buflen);
 int get_token(FILE *f, int *line, int *col, char *result, int maxlen);
 int consume_whitespace(FILE *f, int *line, int *col);
+struct input_ctx *open_input(char *fname);
+void close_input(struct input_ctx *ic);
 
 uint64_t get_number(
     char *input,

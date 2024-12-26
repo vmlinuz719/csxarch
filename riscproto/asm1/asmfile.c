@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "asm.h"
@@ -93,4 +94,21 @@ int get_args(FILE *f, int *line, int *col,
     }
     
     return got_args;
+}
+
+struct input_ctx *open_input(char *fname) {
+    struct input_ctx *ic = malloc(sizeof(struct input_ctx));
+    ic->input = fopen(fname, "r");
+    if (ic->input == NULL) {
+        free(ic);
+        return NULL;
+    }
+    ic->ll = init_label_list();
+    return ic;
+}
+
+void close_input(struct input_ctx *ic) {
+    fclose(ic->input);
+    destroy_label_list(ic->ll);
+    free(ic);
 }
