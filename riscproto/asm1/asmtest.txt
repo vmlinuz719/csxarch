@@ -1,1 +1,2 @@
-label:      a 1,1,0,0x4
+label:      a       rv,p0,p1
+            n       rv,rv,0,0xFF

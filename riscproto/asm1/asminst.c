@@ -120,7 +120,7 @@ int main(int argc, char *argv[]) {
     }
 
     char event[MAX_EVENT_LEN];
-    int len, err;
+    int len, err = 0;
     uint64_t pc = 0;
     while ((len = get_token(in->input, &in->line, &in->col, event, MAX_EVENT_LEN)) > 0) {
         if (event[len - 1] != ':') {

@@ -147,6 +147,7 @@ uint64_t get_register_literal(
     char *input,
     int *err
 ) {
+    // printf("^%s$\n", input);
     for (int i = 0; i < sizeof(base_regs) / sizeof(base_regs[0]); i++) {
         if (!strcmp(input, base_regs[i].name)) {
             return base_regs[i].number;
