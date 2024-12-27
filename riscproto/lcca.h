@@ -104,9 +104,10 @@ void intr_restore(lcca_t *cpu);
 void lcca64_rr_0(lcca_t *, uint32_t);
 void lcca64_br_1(lcca_t *, uint32_t);
 void lcca64_ls_2(lcca_t *, uint32_t);
-void lcca64_im_3(lcca_t *, uint32_t);
+void lcca64_ls_3(lcca_t *, uint32_t);
 void lcca64_im_4(lcca_t *, uint32_t);
-void lcca64_ls_ap_5(lcca_t *, uint32_t);
+void lcca64_im_5(lcca_t *, uint32_t);
+void lcca64_ls_6(lcca_t *, uint32_t);
 
 typedef enum {
     READ = CR_OD_R | (1 << 10),

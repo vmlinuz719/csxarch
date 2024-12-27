@@ -143,27 +143,27 @@ int main(int argc, char *argv[]) {
     pthread_mutex_init(&cas_lock, NULL);
     bus.cas_lock = &cas_lock;
 
-    mem[0] = 0x50;
+    mem[0] = 0x60;
     mem[1] = 0x70;
     mem[2] = 0x00;
     mem[3] = 0x00;
 
-    mem[4] = 0x50;
+    mem[4] = 0x60;
     mem[5] = 0xF0;
     mem[6] = 0x00;
     mem[7] = 0x00;
 
-    mem[8] = 0x51;
+    mem[8] = 0x61;
     mem[9] = 0x70;
     mem[10] = 0x00;
     mem[11] = 0x00;
 
-    mem[12] = 0x51;
+    mem[12] = 0x61;
     mem[13] = 0xF0;
     mem[14] = 0x00;
     mem[15] = 0x00;
     
-    mem[16] = 0x52;
+    mem[16] = 0x62;
     mem[17] = 0x70;
     mem[18] = 0x00;
     mem[19] = 0x02;
@@ -174,9 +174,10 @@ int main(int argc, char *argv[]) {
     cpu.operations[0] = lcca64_rr_0;
     cpu.operations[1] = lcca64_br_1;
     cpu.operations[2] = lcca64_ls_2;
-    cpu.operations[3] = lcca64_im_3;
+    cpu.operations[3] = lcca64_ls_3;
     cpu.operations[4] = lcca64_im_4;
-    cpu.operations[5] = lcca64_ls_ap_5;
+    cpu.operations[5] = lcca64_im_5;
+    cpu.operations[6] = lcca64_ls_6;
     cpu.c_regs[CR_OD0] = 0xFFFFFFFFFFFFC00 | CR_OD_X | CR_OD_W;
     cpu.c_regs[CR_OB0 + 1] = 0xFFFF000000000000;
     cpu.c_regs[CR_OD0 + 1] = 0xFFFFFFFFFC00 | CR_OD_W | CR_OD_C;

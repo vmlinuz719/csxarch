@@ -205,13 +205,13 @@ void lcca64_ls_2(lcca_t *cpu, uint32_t inst) {
     }
 }
 
-void lcca64_im_3(lcca_t *cpu, uint32_t inst) {
+void lcca64_im_4(lcca_t *cpu, uint32_t inst) {
     uint64_t d = IM_IMM(inst);
     d = EXT23(d);
     set_reg_q(cpu, RA(inst), d);
 }
 
-void lcca64_im_4(lcca_t *cpu, uint32_t inst) {
+void lcca64_im_5(lcca_t *cpu, uint32_t inst) {
     uint64_t d = IM_IMM(inst);
     d = EXT23(d);
     set_reg_q(cpu, RA(inst), d << 9);
@@ -304,7 +304,7 @@ void simdbg_0(lcca_t *cpu, uint32_t inst) {
     }
 }
 
-void lcca64_ls_ap_5(lcca_t *cpu, uint32_t inst) {
+void lcca64_ls_3(lcca_t *cpu, uint32_t inst) {
     uint64_t c = get_reg_q(cpu, RC(inst));
     uint64_t d = LS_DISP(inst);
     d = EXT15(d);
@@ -338,6 +338,46 @@ void lcca64_ls_ap_5(lcca_t *cpu, uint32_t inst) {
             }
         } break;
 
+        case 4: {
+            uint64_t mask = shl(sar(1L << 63, 63 - (d & 0x3F)), 1);
+
+            result = (c & shl(1L, d & 0x3F))
+                ? c | mask
+                : c & (~(mask));
+        } break;
+        
+        case 5: {
+            uint64_t mask = shl(sar(1L << 63, 63 - (d & 0x3F)), 1);
+            result = c & (~(mask));
+        } break;
+
+        default: {
+            error(cpu, EMLT, inst, 0);
+            return;
+        }
+    }
+
+    if (e) {
+        error(cpu, e, inst, addr);
+    }
+
+    else if (writeback) {
+        set_reg_q(cpu, RA(inst), result);
+    }
+}
+
+void lcca64_ls_6(lcca_t *cpu, uint32_t inst) {
+    uint64_t c = get_reg_q(cpu, RC(inst));
+    uint64_t d = LS_DISP(inst);
+    d = EXT15(d);
+
+    lcca_error_t e = 0;
+    uint64_t result;
+    int writeback = 1;
+
+    uint64_t addr;
+
+    switch (FN(inst)) {
         case 3: {
             if (cpu->c_regs[CR_PSQ] & CR_PSQ_PL) {
                 error(cpu, IPLT, inst, 0);
@@ -405,6 +445,11 @@ void lcca64_ls_ap_5(lcca_t *cpu, uint32_t inst) {
             }
 
             simdbg_0(cpu, inst);
+            return;
+        }
+
+        default: {
+            error(cpu, EMLT, inst, 0);
             return;
         }
     }
