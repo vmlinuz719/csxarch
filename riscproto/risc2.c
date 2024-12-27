@@ -380,7 +380,7 @@ void lcca64_ls_3(lcca_t *cpu, uint32_t inst) {
     }
 }
 
-void lcca64_ls_6(lcca_t *cpu, uint32_t inst) {
+void lcca64_ls_e(lcca_t *cpu, uint32_t inst) {
     uint64_t c = get_reg_q(cpu, RC(inst));
     uint64_t d = LS_DISP(inst);
     d = EXT15(d);

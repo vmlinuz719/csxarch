@@ -177,7 +177,7 @@ int main(int argc, char *argv[]) {
     cpu.operations[3] = lcca64_ls_3;
     cpu.operations[4] = lcca64_im_4;
     cpu.operations[5] = lcca64_im_5;
-    cpu.operations[6] = lcca64_ls_6;
+    cpu.operations[0xE] = lcca64_ls_e;
     cpu.c_regs[CR_OD0] = 0xFFFFFFFFFFFFC00 | CR_OD_X | CR_OD_W;
     cpu.c_regs[CR_OB0 + 1] = 0xFFFF000000000000;
     cpu.c_regs[CR_OD0 + 1] = 0xFFFFFFFFFC00 | CR_OD_W | CR_OD_C;
