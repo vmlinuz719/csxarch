@@ -120,6 +120,12 @@ void *lcca_run(lcca_t *cpu) {
             inst = fetch_u4b(bus, addr, &fetch_error);
         }
         if (fetch_error) error(cpu, fetch_error, 0, addr);
+        else if (cpu->c_regs[CR_PSQ] & CR_PSQ_LG) {
+            cpu->pc += 4;
+            uint64_t a = get_reg_q(cpu, RA(inst));
+            set_reg_q(cpu, RA(inst), a | ((uint64_t) LGISL2_IMM(inst) << 14));
+            cpu->c_regs[CR_PSQ] ^= CR_PSQ_LG;
+        }
         else {
             void (*operation) (struct lcca_t *, uint32_t) = cpu->operations[OPCODE(inst)];
             if (operation == NULL) error(cpu, EMLT, inst, cpu->pc);
@@ -144,29 +150,38 @@ int main(int argc, char *argv[]) {
     bus.cas_lock = &cas_lock;
 
     mem[0] = 0x60;
-    mem[1] = 0x70;
-    mem[2] = 0x00;
-    mem[3] = 0x00;
+    mem[1] = 0xFF;
+    mem[2] = 0xFF;
+    mem[3] = 0xFF;
+    mem[4] = 0xF0;
+    mem[5] = 0xFF;
+    mem[6] = 0xFF;
+    mem[7] = 0xFF;
 
-    mem[4] = 0x60;
-    mem[5] = 0xF0;
-    mem[6] = 0x00;
-    mem[7] = 0x00;
-
-    mem[8] = 0x61;
+    mem[8] = 0xE0;
     mem[9] = 0x70;
     mem[10] = 0x00;
     mem[11] = 0x00;
 
-    mem[12] = 0x61;
+    mem[12] = 0xE0;
     mem[13] = 0xF0;
     mem[14] = 0x00;
     mem[15] = 0x00;
-    
-    mem[16] = 0x62;
+
+    mem[16] = 0xE1;
     mem[17] = 0x70;
     mem[18] = 0x00;
-    mem[19] = 0x02;
+    mem[19] = 0x00;
+
+    mem[20] = 0xE1;
+    mem[21] = 0xF0;
+    mem[22] = 0x00;
+    mem[23] = 0x00;
+    
+    mem[24] = 0xE2;
+    mem[25] = 0x70;
+    mem[26] = 0x00;
+    mem[27] = 0x02;
 
     lcca_t cpu;
     memset(&cpu, 0, sizeof(cpu));
@@ -177,6 +192,7 @@ int main(int argc, char *argv[]) {
     cpu.operations[3] = lcca64_ls_3;
     cpu.operations[4] = lcca64_im_4;
     cpu.operations[5] = lcca64_im_5;
+    cpu.operations[6] = lcca64_im_6;
     cpu.operations[0xE] = lcca64_ls_e;
     cpu.c_regs[CR_OD0] = 0xFFFFFFFFFFFFC00 | CR_OD_X | CR_OD_W;
     cpu.c_regs[CR_OB0 + 1] = 0xFFFF000000000000;

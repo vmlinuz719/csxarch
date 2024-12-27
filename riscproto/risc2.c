@@ -217,6 +217,13 @@ void lcca64_im_5(lcca_t *cpu, uint32_t inst) {
     set_reg_q(cpu, RA(inst), d << 9);
 }
 
+void lcca64_im_6(lcca_t *cpu, uint32_t inst) {
+    uint64_t d = IM_IMM(inst);
+    d = EXT23(d);
+    set_reg_q(cpu, RA(inst), d << 41);
+    cpu->c_regs[CR_PSQ] |= CR_PSQ_LG;
+}
+
 const char *abi_names[] = {
     " ZR", " CT", NULL,
     
@@ -257,7 +264,7 @@ static inline void print_regs(uint64_t *regs, const char *names[]) {
     }
 }
 
-const char *psq_bits = "OTAWPI";
+const char *psq_bits = "OTALWPI";
 const char *d_bits = "XWRxwBCDE*";
 
 static inline void print_bits(uint64_t n, const char *bits) {
@@ -331,6 +338,10 @@ void lcca64_ls_3(lcca_t *cpu, uint32_t inst) {
         } break;
 
         case 2: {
+            result = c + d;
+        } break;
+
+        case 3: {
             writeback = 0;
             addr = translate(cpu, c + (d << 3), QUAD, WRITE, &e);
             if (!e) {

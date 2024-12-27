@@ -32,16 +32,19 @@
 
 #define LS_DISP(x)          (((x) >> 5) & 0x7FFF)
 
+#define LGISL2_IMM(x)       (((x) & 0x7FFFFF) | (((x) & 0xF0000000) >> 5))
+
 #define CR_MAX              48
 
 #define CR_PSQ              0
 #define CR_PSQ_EI           (1)
 #define CR_PSQ_PL           (1 << 1)
 #define CR_PSQ_WS           (1 << 2)
-#define CR_PSQ_AE           (1 << 3)
-#define CR_PSQ_TE           (1 << 4)
-#define CR_PSQ_OC           (1 << 5)
-#define CR_PSQ_INTR_ENTRY_MASK 0xFFFFFFFFFFFFFFF8
+#define CR_PSQ_LG           (1 << 3)
+#define CR_PSQ_AE           (1 << 4)
+#define CR_PSQ_TE           (1 << 5)
+#define CR_PSQ_OC           (1 << 6)
+#define CR_PSQ_INTR_ENTRY_MASK 0xFFFFFFFFFFFFFFF0
 
 #define CR_APC              1
 #define CR_APSQ             2
@@ -107,6 +110,7 @@ void lcca64_ls_2(lcca_t *, uint32_t);
 void lcca64_ls_3(lcca_t *, uint32_t);
 void lcca64_im_4(lcca_t *, uint32_t);
 void lcca64_im_5(lcca_t *, uint32_t);
+void lcca64_im_6(lcca_t *, uint32_t);
 void lcca64_ls_e(lcca_t *, uint32_t);
 
 typedef enum {
