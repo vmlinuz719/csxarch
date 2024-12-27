@@ -339,16 +339,20 @@ void lcca64_ls_3(lcca_t *cpu, uint32_t inst) {
         } break;
 
         case 4: {
+            uint64_t e = (d >> 6) & 0x3FF;
             uint64_t mask = shl(sar(1L << 63, 63 - (d & 0x3F)), 1);
+            uint64_t mask2 = shl(sar(1L << 63, 63 - (e & 0x3F)), 1);
 
             result = (c & shl(1L, d & 0x3F))
                 ? c | mask
                 : c & (~(mask));
+            result &= ~mask2;
         } break;
         
         case 5: {
+            uint64_t e = (d >> 6) & 0x3FF;
             uint64_t mask = shl(sar(1L << 63, 63 - (d & 0x3F)), 1);
-            result = c & (~(mask));
+            result = sar(c, e) & (~(mask));
         } break;
 
         default: {
