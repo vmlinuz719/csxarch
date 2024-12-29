@@ -1,2 +1,3 @@
 label:      a       rv,p0,p1
-            n       rv,rv,0,0xFF
+            a       rv,rv,1,0xFF
+

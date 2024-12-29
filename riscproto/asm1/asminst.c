@@ -7,6 +7,9 @@
 
 // asminst - Instruction generation
 
+#define ERR_LGISL -2
+#define ERR_NO_LABEL -3
+
 struct instruction_def {
     char *mnemonic;
     int opcode;
@@ -124,7 +127,23 @@ int main(int argc, char *argv[]) {
     uint64_t pc = 0;
     while ((len = get_token(in->input, &in->line, &in->col, event, MAX_EVENT_LEN)) > 0) {
         if (event[len - 1] != ':') {
-            printf("%08X\n", asm_any(in, pc, event, &err));
+            pc += 4;
+            if (err == -1) {
+                printf("Syntax error near %d:%d\n", in->line, in->col);
+                break;
+            } else if (err == ERR_LGISL) {
+                pc += 4;
+            }
+        }
+        else {
+            event[len - 1] = '\0';
+            struct label_def *r = register_label(in->ll, event, pc);
+            if (r == NULL) {
+                printf("Bad label near %d:%d\n", in->line, in->col);
+            }
+            else {
+                printf("%16lX:%s\n", r->value, r->label);
+            }
         }
     }
 
