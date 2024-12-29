@@ -1,3 +1,4 @@
 label:      a       rv,p0,p1
             a       rv,rv,1,0xFF
 
+anotherlbl: x       a0,a1

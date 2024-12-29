@@ -14,54 +14,55 @@ struct instruction_def {
     char *mnemonic;
     int opcode;
     int fn;
-    uint32_t (*assemble) (struct input_ctx *ic, uint64_t pc, int opcode, int fn, int *err);
+    int size;
+    uint64_t (*assemble) (struct input_ctx *ic, uint64_t pc, int opcode, int fn, int *err);
 };
 
-uint32_t asm_rr(struct input_ctx *ic, uint64_t pc, int opcode, int fn, int *err);
+uint64_t asm_rr(struct input_ctx *ic, uint64_t pc, int opcode, int fn, int *err);
 
 static struct instruction_def opcodes[] = {
-    {"a",       0, 0, asm_rr},
-    {"s",       0, 1, asm_rr},
-    {"n",       0, 2, asm_rr},
-    {"o",       0, 3, asm_rr},
-    {"x",       0, 4, asm_rr},
-    {"sl",      0, 5, asm_rr},
-    {"asl",     0, 6, asm_rr},
-    {"setxc",   0, 7, asm_rr},
+    {"a",       0, 0, 1, asm_rr},
+    {"s",       0, 1, 1, asm_rr},
+    {"n",       0, 2, 1, asm_rr},
+    {"o",       0, 3, 1, asm_rr},
+    {"x",       0, 4, 1, asm_rr},
+    {"sl",      0, 5, 1, asm_rr},
+    {"asl",     0, 6, 1, asm_rr},
+    {"setxc",   0, 7, 1, asm_rr},
 
-    {"b",       1, 0, NULL},
-    {"bl",      1, 1, NULL},
-    {"blr",     1, 2, NULL},
-    {"j",       1, 3, NULL},
-    {"bez",     1, 4, NULL},
-    {"bnz",     1, 5, NULL},
-    {"bgz",     1, 6, NULL},
-    {"blez",    1, 7, NULL},
+    {"b",       1, 0, 1, NULL},
+    {"bl",      1, 1, 1, NULL},
+    {"blr",     1, 2, 1, NULL},
+    {"j",       1, 3, 1, NULL},
+    {"bez",     1, 4, 1, NULL},
+    {"bnz",     1, 5, 1, NULL},
+    {"bgz",     1, 6, 1, NULL},
+    {"blez",    1, 7, 1, NULL},
 
-    {"lc",      2, 0, NULL},
-    {"lcz",     2, 1, NULL},
-    {"lw",      2, 2, NULL},
-    {"lwz",     2, 3, NULL},
-    {"l",       2, 4, NULL},
-    {"stc",     2, 5, NULL},
-    {"stw",     2, 6, NULL},
-    {"st",      2, 7, NULL},
+    {"lc",      2, 0, 1, NULL},
+    {"lcz",     2, 1, 1, NULL},
+    {"lw",      2, 2, 1, NULL},
+    {"lwz",     2, 3, 1, NULL},
+    {"l",       2, 4, 1, NULL},
+    {"stc",     2, 5, 1, NULL},
+    {"stw",     2, 6, 1, NULL},
+    {"st",      2, 7, 1, NULL},
 
-    {"li",      3, 0, NULL},
-    {"lisl",    4, 0, NULL},
+    {"li",      3, 0, 1, NULL},
+    {"lisl",    4, 0, 1, NULL},
 
-    {"lz",      5, 0, NULL},
-    {"lq",      5, 1, NULL},
-    {"stq",     5, 2, NULL},
-    {"mfcr",    5, 3, NULL},
-    {"mtcr",    5, 4, NULL},
-    {"rex",     5, 5, NULL},
-    {"svc",     5, 5, NULL},
-    {"trap",    5, 6, NULL},
-    {"hvc",     5, 7, NULL},
+    {"lz",      5, 0, 1, NULL},
+    {"lq",      5, 1, 1, NULL},
+    {"stq",     5, 2, 1, NULL},
+    {"mfcr",    5, 3, 1, NULL},
+    {"mtcr",    5, 4, 1, NULL},
+    {"rex",     5, 5, 1, NULL},
+    {"svc",     5, 5, 1, NULL},
+    {"trap",    5, 6, 1, NULL},
+    {"hvc",     5, 7, 1, NULL},
 };
 
-uint32_t asm_any(struct input_ctx *ic, uint64_t pc, char *mnemonic, int *err) {
+uint64_t asm_any(struct input_ctx *ic, uint64_t pc, char *mnemonic, int *err) {
     for (int i = 0; i < sizeof(opcodes) / sizeof(opcodes[0]); i++) {
         if (!strcmp(mnemonic, opcodes[i].mnemonic)) {
             return opcodes[i].assemble(ic, pc, opcodes[i].opcode, opcodes[i].fn, err);
@@ -72,7 +73,7 @@ uint32_t asm_any(struct input_ctx *ic, uint64_t pc, char *mnemonic, int *err) {
     return 0;
 }
 
-uint32_t asm_rr(struct input_ctx *ic, uint64_t pc, int opcode, int fn, int *err) {
+uint64_t asm_rr(struct input_ctx *ic, uint64_t pc, int opcode, int fn, int *err) {
     uint32_t result = (opcode << 28) | (fn << 20);
 
     char event[MAX_EVENT_LEN];
@@ -128,6 +129,7 @@ int main(int argc, char *argv[]) {
     while ((len = get_token(in->input, &in->line, &in->col, event, MAX_EVENT_LEN)) > 0) {
         if (event[len - 1] != ':') {
             pc += 4;
+            printf("%08lX\n", asm_any(in, pc, event, &err));
             if (err == -1) {
                 printf("Syntax error near %d:%d\n", in->line, in->col);
                 break;
