@@ -16,7 +16,7 @@ void emit(struct input_ctx *ic, uint64_t value, int size) {
             int shamt = ((size - 1) * 8) - (i * 8);
             char ch = (char)((value >> shamt) & 0xFF);
             printf("%02hhX", ch);
-            //fwrite(&ch, 1, 1, ic->output);
+            fwrite(&ch, 1, 1, ic->output);
         }
         printf("\n");
     }
@@ -245,8 +245,8 @@ uint64_t asm_br_j(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *e
 }
 
 int main(int argc, char *argv[]) {
-    if (argc != 2) {
-        fprintf(stderr, "usage: %s <in_file>\n", argv[0]);
+    if (argc != 3) {
+        fprintf(stderr, "usage: %s <in_file> <out_file>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
     
@@ -276,6 +276,28 @@ int main(int argc, char *argv[]) {
             }
             else {
                 printf("%16lX:%s\n", r->value, r->label);
+            }
+        }
+    }
+
+    if (open_output(in, argv[2])) {
+        fprintf(stderr, "fatal: could not open %s\n", argv[1]);
+        close_input(in);
+        exit(EXIT_FAILURE);
+    }
+    
+    rewind(in->input);
+
+    while ((len = get_token(in->input, &in->line, &in->col, event, MAX_EVENT_LEN)) > 0) {
+        if (event[len - 1] != ':') {
+            asm_any(in, &pc, event, &err);
+            if (err == -1) {
+                printf("Syntax error near %d:%d\n", in->line, in->col);
+                break;
+            }
+            else if (err == ERR_NO_LABEL) {
+                printf("Unresolved label near %d:%d\n", in->line, in->col);
+                break;
             }
         }
     }

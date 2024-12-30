@@ -110,8 +110,15 @@ struct input_ctx *open_input(char *fname) {
     return ic;
 }
 
+int open_output(struct input_ctx *ic, char *fname) {
+    ic->output = fopen(fname, "wb");
+    if (ic->output == NULL) return -1;
+    return 0;
+}
+
 void close_input(struct input_ctx *ic) {
     fclose(ic->input);
+    if (ic->output != NULL) fclose(ic->output);
     destroy_label_list(ic->ll);
     free(ic);
 }

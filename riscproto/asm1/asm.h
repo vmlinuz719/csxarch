@@ -19,6 +19,7 @@ int get_args(FILE *f, int *line, int *col,
 int get_token(FILE *f, int *line, int *col, char *result, int maxlen);
 int consume_whitespace(FILE *f, int *line, int *col);
 struct input_ctx *open_input(char *fname);
+int open_output(struct input_ctx *ic, char *fname);
 void close_input(struct input_ctx *ic);
 
 uint64_t get_number(
