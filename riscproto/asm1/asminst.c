@@ -38,6 +38,10 @@ struct label_cmd_def {
 uint64_t asm_rr(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t asm_br(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t asm_br_j(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
+uint64_t asm_ls_c(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
+uint64_t asm_ls_w(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
+uint64_t asm_ls_l(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
+uint64_t asm_ls_q(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 
 static struct instruction_def opcodes[] = {
     {"a",       0, 0, 4, asm_rr},
@@ -58,14 +62,19 @@ static struct instruction_def opcodes[] = {
     {"bgz",     1, 6, 4, asm_br},
     {"blez",    1, 7, 4, asm_br},
 
-    {"lc",      2, 0, 4, NULL},
-    {"lcz",     2, 1, 4, NULL},
-    {"lw",      2, 2, 4, NULL},
-    {"lwz",     2, 3, 4, NULL},
-    {"l",       2, 4, 4, NULL},
-    {"stc",     2, 5, 4, NULL},
-    {"stw",     2, 6, 4, NULL},
-    {"st",      2, 7, 4, NULL},
+    {"lc",      2, 0, 4, asm_ls_c},
+    {"lcz",     2, 1, 4, asm_ls_c},
+    {"lw",      2, 2, 4, asm_ls_w},
+    {"lwz",     2, 3, 4, asm_ls_w},
+    {"l",       2, 4, 4, asm_ls_l},
+    {"stc",     2, 5, 4, asm_ls_c},
+    {"stw",     2, 6, 4, asm_ls_w},
+    {"st",      2, 7, 4, asm_ls_l},
+    
+    {"lz",      3, 0, 4, asm_ls_l},
+    {"lq",      3, 1, 4, asm_ls_q},
+    {"lca",     3, 2, 4, asm_ls_c},
+    {"stq",     3, 3, 4, asm_ls_q},
 };
 
 uint64_t label_cmd_gh(uint64_t pc, uint64_t label) {
@@ -242,6 +251,48 @@ uint64_t asm_br_j(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *e
     result |= (a & 0x1F) << 23;
     result |= (d >> 2) & 0xFFFFF;
     return result;
+}
+
+uint64_t asm_ls(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err, int shamt) {
+    uint32_t result = (opcode << 28) | (fn << 20);
+
+    char event[MAX_EVENT_LEN];
+    char *args[MAX_ARGS];
+    int got_args = get_args(ic->input, &ic->line, &ic->col, args, MAX_ARGS, event, MAX_EVENT_LEN);
+    if (got_args != 3) {
+        *err = -1;
+        return 0;
+    }
+
+    int a = 0, c = 0, d = 0;
+
+    a = get_register_literal(args[0], err); if (*err) return 0;
+    c = get_register_literal(args[1], err); if (*err) return 0;
+    
+    int is_label;
+    d = label_or_num(ic, *pc, args[2], 0x7FFF, &is_label, err); if (*err) return 0;
+    if (is_label) d >>= shamt;
+
+    result |= (a & 0x1F) << 23;
+    result |= ((d >> shamt) & 0x7FFF) << 5;
+    result |= (c & 0x1F);
+    return result;
+}
+
+uint64_t asm_ls_c(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
+    return asm_ls(ic, pc, opcode, fn, err, 0);
+}
+
+uint64_t asm_ls_w(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
+    return asm_ls(ic, pc, opcode, fn, err, 1);
+}
+
+uint64_t asm_ls_l(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
+    return asm_ls(ic, pc, opcode, fn, err, 2);
+}
+
+uint64_t asm_ls_q(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
+    return asm_ls(ic, pc, opcode, fn, err, 3);
 }
 
 int main(int argc, char *argv[]) {
