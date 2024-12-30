@@ -10,6 +10,18 @@
 #define INFO_LGISL -2
 #define ERR_NO_LABEL -3
 
+void emit(struct input_ctx *ic, uint64_t value, int size) {
+    if (ic->output != NULL) {
+        for (int i = 0; i < size; i++) {
+            int shamt = ((size - 1) * 8) - (i * 8);
+            char ch = (char)((value >> shamt) & 0xFF);
+            printf("%02hhX", ch);
+            //fwrite(&ch, 1, 1, ic->output);
+        }
+        printf("\n");
+    }
+}
+
 struct instruction_def {
     char *mnemonic;
     int opcode;
@@ -24,6 +36,8 @@ struct label_cmd_def {
 };
 
 uint64_t asm_rr(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
+uint64_t asm_br(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
+uint64_t asm_br_j(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 
 static struct instruction_def opcodes[] = {
     {"a",       0, 0, 4, asm_rr},
@@ -35,14 +49,14 @@ static struct instruction_def opcodes[] = {
     {"asl",     0, 6, 4, asm_rr},
     {"setxc",   0, 7, 4, asm_rr},
 
-    {"b",       1, 0, 4, NULL},
-    {"bl",      1, 1, 4, NULL},
-    {"blr",     1, 2, 4, NULL},
-    {"j",       1, 3, 4, NULL},
-    {"bez",     1, 4, 4, NULL},
-    {"bnz",     1, 5, 4, NULL},
-    {"bgz",     1, 6, 4, NULL},
-    {"blez",    1, 7, 4, NULL},
+    {"b",       1, 0, 4, asm_br},
+    {"bl",      1, 1, 4, asm_br},
+    {"blr",     1, 2, 4, asm_br},
+    {"j",       1, 3, 4, asm_br_j},
+    {"bez",     1, 4, 4, asm_br},
+    {"bnz",     1, 5, 4, asm_br},
+    {"bgz",     1, 6, 4, asm_br},
+    {"blez",    1, 7, 4, asm_br},
 
     {"lc",      2, 0, 4, NULL},
     {"lcz",     2, 1, 4, NULL},
@@ -52,19 +66,6 @@ static struct instruction_def opcodes[] = {
     {"stc",     2, 5, 4, NULL},
     {"stw",     2, 6, 4, NULL},
     {"st",      2, 7, 4, NULL},
-
-    {"li",      3, 0, 4, NULL},
-    {"lisl",    4, 0, 4, NULL},
-
-    {"lz",      5, 0, 4, NULL},
-    {"lq",      5, 1, 4, NULL},
-    {"stq",     5, 2, 4, NULL},
-    {"mfcr",    5, 3, 4, NULL},
-    {"mtcr",    5, 4, 4, NULL},
-    {"rex",     5, 5, 4, NULL},
-    {"svc",     5, 5, 4, NULL},
-    {"trap",    5, 6, 4, NULL},
-    {"hvc",     5, 7, 4, NULL},
 };
 
 uint64_t label_cmd_gh(uint64_t pc, uint64_t label) {
@@ -122,10 +123,12 @@ uint64_t label_cmd(struct input_ctx *ic, uint64_t pc, char *label, int *err) {
     return 0;
 }
 
-uint64_t label_or_num(struct input_ctx *ic, uint64_t pc, char *label, uint64_t n_max, int *err) {
+uint64_t label_or_num(struct input_ctx *ic, uint64_t pc, char *label, uint64_t n_max, int *is_label, int *err) {
     if (('0' <= label[0] && label[0] <= '9') || label[0] == '-') {
+        if (is_label != NULL) *is_label = 0;
         return get_number(label, n_max, err);
     } else {
+        if (is_label != NULL) *is_label = 1;
         return label_cmd(ic, pc, label, err);
     }
 }
@@ -134,7 +137,9 @@ uint64_t asm_any(struct input_ctx *ic, uint64_t *pc, char *mnemonic, int *err) {
     for (int i = 0; i < sizeof(opcodes) / sizeof(opcodes[0]); i++) {
         if (!strcmp(mnemonic, opcodes[i].mnemonic)) {
             *pc += opcodes[i].size;
-            return opcodes[i].assemble(ic, pc, opcodes[i].opcode, opcodes[i].fn, err);
+            uint64_t result = opcodes[i].assemble(ic, pc, opcodes[i].opcode, opcodes[i].fn, err);
+            emit(ic, result, opcodes[i].size);
+            return result;
         }
     }
 
@@ -169,7 +174,7 @@ uint64_t asm_rr(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err
             a = get_register_literal(args[0], err); if (*err) return 0;
             b = get_register_literal(args[1], err); if (*err) return 0;
             c = get_register_literal(args[2], err); if (*err) return 0;
-            d = label_or_num(ic, *pc, args[3], 0x3FF, err); if (*err) return 0;
+            d = label_or_num(ic, *pc, args[3], 0x3FF, NULL, err); if (*err) return 0;
         } break;
     }
 
@@ -177,6 +182,65 @@ uint64_t asm_rr(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err
     result |= (b & 0x1F) << 5;
     result |= (c & 0x1F);
     result |= (d & 0x3FF) << 10;
+    return result;
+}
+
+uint64_t asm_br(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
+    uint32_t result = (opcode << 28) | (fn << 20);
+
+    char event[MAX_EVENT_LEN];
+    char *args[MAX_ARGS];
+    int got_args = get_args(ic->input, &ic->line, &ic->col, args, MAX_ARGS, event, MAX_EVENT_LEN);
+    if (got_args != 1 && got_args != 2) {
+        *err = -1;
+        return 0;
+    }
+
+    int a = 0, d = 0;
+
+    int i = 0;
+
+    if (got_args == 2) {
+        a = get_register_literal(args[i++], err);
+        if (*err) return 0;
+    }
+    
+    
+    int is_label;
+    d = label_or_num(ic, *pc, args[i], 0x3FFFFF, &is_label, err); if (*err) return 0;
+    if (is_label) d -= *pc;
+
+    result |= (a & 0x1F) << 23;
+    result |= (d >> 2) & 0xFFFFF;
+    return result;
+}
+
+uint64_t asm_br_j(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
+    uint32_t result = (opcode << 28) | (fn << 20);
+
+    char event[MAX_EVENT_LEN];
+    char *args[MAX_ARGS];
+    int got_args = get_args(ic->input, &ic->line, &ic->col, args, MAX_ARGS, event, MAX_EVENT_LEN);
+    if (got_args != 1 && got_args != 2) {
+        *err = -1;
+        return 0;
+    }
+
+    int a = 0, d = 0;
+
+    int i = 0;
+
+    if (got_args == 2) {
+        a = get_register_literal(args[i++], err);
+        if (*err) return 0;
+    }
+    
+    
+    int is_label;
+    d = label_or_num(ic, *pc, args[i], 0x3FFFFF, &is_label, err); if (*err) return 0;
+
+    result |= (a & 0x1F) << 23;
+    result |= (d >> 2) & 0xFFFFF;
     return result;
 }
 
@@ -197,7 +261,7 @@ int main(int argc, char *argv[]) {
     uint64_t pc = 0;
     while ((len = get_token(in->input, &in->line, &in->col, event, MAX_EVENT_LEN)) > 0) {
         if (event[len - 1] != ':') {
-            printf("%08lX\n", asm_any(in, &pc, event, &err));
+            asm_any(in, &pc, event, &err);
             if (err == -1) {
                 printf("Syntax error near %d:%d\n", in->line, in->col);
                 break;
@@ -208,6 +272,7 @@ int main(int argc, char *argv[]) {
             struct label_def *r = register_label(in->ll, event, pc);
             if (r == NULL) {
                 printf("Bad label near %d:%d\n", in->line, in->col);
+                break;
             }
             else {
                 printf("%16lX:%s\n", r->value, r->label);

@@ -9,7 +9,7 @@
 #include <stdint.h>
 
 struct input_ctx {
-    FILE *input;
+    FILE *input, *output;
     int line, col;
     struct label_list *ll;
 };
