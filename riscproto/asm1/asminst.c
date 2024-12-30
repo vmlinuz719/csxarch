@@ -7,7 +7,7 @@
 
 // asminst - Instruction generation
 
-#define ERR_LGISL -2
+#define INFO_LGISL -2
 #define ERR_NO_LABEL -3
 
 struct instruction_def {
@@ -15,56 +15,125 @@ struct instruction_def {
     int opcode;
     int fn;
     int size;
-    uint64_t (*assemble) (struct input_ctx *ic, uint64_t pc, int opcode, int fn, int *err);
+    uint64_t (*assemble) (struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 };
 
-uint64_t asm_rr(struct input_ctx *ic, uint64_t pc, int opcode, int fn, int *err);
+struct label_cmd_def {
+    char *mnemonic;
+    uint64_t (*command) (uint64_t pc, uint64_t label);
+};
+
+uint64_t asm_rr(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 
 static struct instruction_def opcodes[] = {
-    {"a",       0, 0, 1, asm_rr},
-    {"s",       0, 1, 1, asm_rr},
-    {"n",       0, 2, 1, asm_rr},
-    {"o",       0, 3, 1, asm_rr},
-    {"x",       0, 4, 1, asm_rr},
-    {"sl",      0, 5, 1, asm_rr},
-    {"asl",     0, 6, 1, asm_rr},
-    {"setxc",   0, 7, 1, asm_rr},
+    {"a",       0, 0, 4, asm_rr},
+    {"s",       0, 1, 4, asm_rr},
+    {"n",       0, 2, 4, asm_rr},
+    {"o",       0, 3, 4, asm_rr},
+    {"x",       0, 4, 4, asm_rr},
+    {"sl",      0, 5, 4, asm_rr},
+    {"asl",     0, 6, 4, asm_rr},
+    {"setxc",   0, 7, 4, asm_rr},
 
-    {"b",       1, 0, 1, NULL},
-    {"bl",      1, 1, 1, NULL},
-    {"blr",     1, 2, 1, NULL},
-    {"j",       1, 3, 1, NULL},
-    {"bez",     1, 4, 1, NULL},
-    {"bnz",     1, 5, 1, NULL},
-    {"bgz",     1, 6, 1, NULL},
-    {"blez",    1, 7, 1, NULL},
+    {"b",       1, 0, 4, NULL},
+    {"bl",      1, 1, 4, NULL},
+    {"blr",     1, 2, 4, NULL},
+    {"j",       1, 3, 4, NULL},
+    {"bez",     1, 4, 4, NULL},
+    {"bnz",     1, 5, 4, NULL},
+    {"bgz",     1, 6, 4, NULL},
+    {"blez",    1, 7, 4, NULL},
 
-    {"lc",      2, 0, 1, NULL},
-    {"lcz",     2, 1, 1, NULL},
-    {"lw",      2, 2, 1, NULL},
-    {"lwz",     2, 3, 1, NULL},
-    {"l",       2, 4, 1, NULL},
-    {"stc",     2, 5, 1, NULL},
-    {"stw",     2, 6, 1, NULL},
-    {"st",      2, 7, 1, NULL},
+    {"lc",      2, 0, 4, NULL},
+    {"lcz",     2, 1, 4, NULL},
+    {"lw",      2, 2, 4, NULL},
+    {"lwz",     2, 3, 4, NULL},
+    {"l",       2, 4, 4, NULL},
+    {"stc",     2, 5, 4, NULL},
+    {"stw",     2, 6, 4, NULL},
+    {"st",      2, 7, 4, NULL},
 
-    {"li",      3, 0, 1, NULL},
-    {"lisl",    4, 0, 1, NULL},
+    {"li",      3, 0, 4, NULL},
+    {"lisl",    4, 0, 4, NULL},
 
-    {"lz",      5, 0, 1, NULL},
-    {"lq",      5, 1, 1, NULL},
-    {"stq",     5, 2, 1, NULL},
-    {"mfcr",    5, 3, 1, NULL},
-    {"mtcr",    5, 4, 1, NULL},
-    {"rex",     5, 5, 1, NULL},
-    {"svc",     5, 5, 1, NULL},
-    {"trap",    5, 6, 1, NULL},
-    {"hvc",     5, 7, 1, NULL},
+    {"lz",      5, 0, 4, NULL},
+    {"lq",      5, 1, 4, NULL},
+    {"stq",     5, 2, 4, NULL},
+    {"mfcr",    5, 3, 4, NULL},
+    {"mtcr",    5, 4, 4, NULL},
+    {"rex",     5, 5, 4, NULL},
+    {"svc",     5, 5, 4, NULL},
+    {"trap",    5, 6, 4, NULL},
+    {"hvc",     5, 7, 4, NULL},
 };
 
-uint64_t asm_any(struct input_ctx *ic, uint64_t pc, char *mnemonic, int *err) {
+uint64_t label_cmd_gh(uint64_t pc, uint64_t label) {
+    return label >> 14;
+}
+
+uint64_t label_cmd_gl(uint64_t pc, uint64_t label) {
+    return label & 0x3FFF;
+}
+
+uint64_t label_cmd_h(uint64_t pc, uint64_t label) {
+    return label >> 9;
+}
+
+uint64_t label_cmd_l(uint64_t pc, uint64_t label) {
+    return label & 0x1F;
+}
+
+static struct label_cmd_def label_cmds[] = {
+    {"gh",      label_cmd_gh},
+    {"gl",      label_cmd_gl},
+    {"h",       label_cmd_h },
+    {"l",       label_cmd_l },
+};
+
+uint64_t label_cmd(struct input_ctx *ic, uint64_t pc, char *label, int *err) {
+    char *label_name = label;
+    char *label_cmd = NULL;
+    
+    int len = strlen(label);
+    for (int i = 0; i < len; i++) {
+        if (label[i] == '@') {
+            label[i] = '\0';
+            label_cmd = label_name + i + 1;
+            break;
+        }
+    }
+    
+    uint64_t *label_ptr = search_label(ic->ll, label_name);
+    if (label_ptr == NULL) {
+        *err = ERR_NO_LABEL;
+        return 0;
+    }
+    
+    uint64_t label_value = *label_ptr;
+    if (label_cmd == NULL) return label_value;
+    
+    for (int i = 0; i < sizeof(label_cmds) / sizeof(label_cmds[0]); i++) {
+        if (!strcmp(label_cmd, label_cmds[i].mnemonic)) {
+            return label_cmds[i].command(pc, label_value);
+        }
+    }
+    
+    *err = -1;
+    return 0;
+}
+
+uint64_t label_or_num(struct input_ctx *ic, uint64_t pc, char *label, uint64_t n_max, int *err) {
+    if (('0' <= label[0] && label[0] <= '9') || label[0] == '-') {
+        return get_number(label, n_max, err);
+    } else {
+        return label_cmd(ic, pc, label, err);
+    }
+}
+
+uint64_t asm_any(struct input_ctx *ic, uint64_t *pc, char *mnemonic, int *err) {
     for (int i = 0; i < sizeof(opcodes) / sizeof(opcodes[0]); i++) {
         if (!strcmp(mnemonic, opcodes[i].mnemonic)) {
+            *pc += opcodes[i].size;
             return opcodes[i].assemble(ic, pc, opcodes[i].opcode, opcodes[i].fn, err);
         }
     }
@@ -73,7 +142,7 @@ uint64_t asm_any(struct input_ctx *ic, uint64_t pc, char *mnemonic, int *err) {
     return 0;
 }
 
-uint64_t asm_rr(struct input_ctx *ic, uint64_t pc, int opcode, int fn, int *err) {
+uint64_t asm_rr(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
     uint32_t result = (opcode << 28) | (fn << 20);
 
     char event[MAX_EVENT_LEN];
@@ -100,7 +169,7 @@ uint64_t asm_rr(struct input_ctx *ic, uint64_t pc, int opcode, int fn, int *err)
             a = get_register_literal(args[0], err); if (*err) return 0;
             b = get_register_literal(args[1], err); if (*err) return 0;
             c = get_register_literal(args[2], err); if (*err) return 0;
-            d = get_number(args[3], 0x3FF, err); if (*err) return 0;
+            d = label_or_num(ic, *pc, args[3], 0x3FF, err); if (*err) return 0;
         } break;
     }
 
@@ -128,13 +197,10 @@ int main(int argc, char *argv[]) {
     uint64_t pc = 0;
     while ((len = get_token(in->input, &in->line, &in->col, event, MAX_EVENT_LEN)) > 0) {
         if (event[len - 1] != ':') {
-            pc += 4;
-            printf("%08lX\n", asm_any(in, pc, event, &err));
+            printf("%08lX\n", asm_any(in, &pc, event, &err));
             if (err == -1) {
                 printf("Syntax error near %d:%d\n", in->line, in->col);
                 break;
-            } else if (err == ERR_LGISL) {
-                pc += 4;
             }
         }
         else {
