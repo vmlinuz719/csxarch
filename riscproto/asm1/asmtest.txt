@@ -20,7 +20,7 @@ fibn:       xor     rv,rv           ; a
             xor     a2,a2           ; i
             
 fibn_l0:    add     a3,rv,a1
-            add     a2,a2,0,1
+            inc     a2
             mov     rv,a1
             sub     a0,p0,a2
             mov     a1,a3
