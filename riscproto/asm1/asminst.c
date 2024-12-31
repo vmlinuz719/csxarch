@@ -42,6 +42,12 @@ uint64_t asm_ls_c(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *e
 uint64_t asm_ls_w(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t asm_ls_l(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t asm_ls_q(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
+uint64_t asm_bifn(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
+uint64_t asm_im(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
+uint64_t asm_lgisl(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
+uint64_t asm_cr(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
+uint64_t asm_tr(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
+uint64_t asm_none(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 
 static struct instruction_def opcodes[] = {
     {"a",       0, 0, 4, asm_rr},
@@ -56,6 +62,7 @@ static struct instruction_def opcodes[] = {
     {"b",       1, 0, 4, asm_br},
     {"bl",      1, 1, 4, asm_br},
     {"blr",     1, 2, 4, asm_br},
+    {"ret",     1, 2, 4, asm_none},
     {"j",       1, 3, 4, asm_br_j},
     {"bez",     1, 4, 4, asm_br},
     {"bnz",     1, 5, 4, asm_br},
@@ -75,6 +82,21 @@ static struct instruction_def opcodes[] = {
     {"lq",      3, 1, 4, asm_ls_q},
     {"lca",     3, 2, 4, asm_ls_c},
     {"stq",     3, 3, 4, asm_ls_q},
+    
+    {"extn",    3, 4, 4, asm_bifn},
+    {"extnm",   3, 5, 4, asm_bifn},
+    {"bifn",    3, 6, 4, asm_bifn},
+    
+    {"li",      4, 0, 4, asm_im},
+    {"lisl",    5, 0, 4, asm_im},
+    {"lgisl",   6, 0, 8, asm_lgisl},
+    
+    {"mfcr",    14, 3, 4, asm_cr},
+    {"mtcr",    14, 4, 4, asm_cr},
+    {"rex",     14, 5, 4, asm_ls_c},
+    {"svc",     14, 5, 4, asm_ls_c},
+    {"trap",    14, 6, 4, asm_tr},
+    {"hvc",     14, 7, 4, asm_ls_c},
 };
 
 uint64_t label_cmd_gh(uint64_t pc, uint64_t label) {
@@ -243,13 +265,83 @@ uint64_t asm_br_j(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *e
         a = get_register_literal(args[i++], err);
         if (*err) return 0;
     }
-    
-    
-    int is_label;
-    d = label_or_num(ic, *pc, args[i], 0x3FFFFF, &is_label, err); if (*err) return 0;
+
+    d = label_or_num(ic, *pc, args[i], 0x3FFFFF, NULL, err); if (*err) return 0;
 
     result |= (a & 0x1F) << 23;
     result |= (d >> 2) & 0xFFFFF;
+    return result;
+}
+
+uint64_t asm_im(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
+    uint32_t result = (opcode << 28);
+
+    char event[MAX_EVENT_LEN];
+    char *args[MAX_ARGS];
+    int got_args = get_args(ic->input, &ic->line, &ic->col, args, MAX_ARGS, event, MAX_EVENT_LEN);
+    if (got_args != 2) {
+        *err = -1;
+        return 0;
+    }
+
+    int a = 0, c = 0, d = 0;
+
+    a = get_register_literal(args[0], err); if (*err) return 0;
+
+    d = label_or_num(ic, *pc, args[1], 0x7FFFFF, NULL, err); if (*err) return 0;
+
+    result |= (a & 0x1F) << 23;
+    result |= (d & 0x7FFFFF);
+    return result;
+}
+
+uint64_t asm_tr(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
+    uint32_t result = (opcode << 28);
+
+    char event[MAX_EVENT_LEN];
+    char *args[MAX_ARGS];
+    int got_args = get_args(ic->input, &ic->line, &ic->col, args, MAX_ARGS, event, MAX_EVENT_LEN);
+    if (got_args != 1) {
+        *err = -1;
+        return 0;
+    }
+
+    int d = 0;
+
+    d = label_or_num(ic, *pc, args[0], 0x7FFF, NULL, err); if (*err) return 0;
+
+    result |= (d & 0x7FFF) << 5;
+    return result;
+}
+
+uint64_t asm_none(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
+    uint32_t result = (opcode << 28) | (fn << 20);
+    return result;
+}
+
+uint64_t asm_lgisl(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
+    uint64_t result = ((uint64_t) opcode << 60);
+
+    char event[MAX_EVENT_LEN];
+    char *args[MAX_ARGS];
+    int got_args = get_args(ic->input, &ic->line, &ic->col, args, MAX_ARGS, event, MAX_EVENT_LEN);
+    if (got_args != 2) {
+        *err = -1;
+        return 0;
+    }
+
+    int a = 0, c = 0;
+    uint64_t d = 0;
+
+    a = get_register_literal(args[0], err); if (*err) return 0;
+
+    d = label_or_num(ic, *pc, args[1], 0x3FFFFFFFFFFFF, NULL, err); if (*err) return 0;
+    d &= 0x3FFFFFFFFFFFF;
+
+    result |= (uint64_t) (a & 0x1F) << 55;
+    result |= (a & 0x1F) << 23;
+    result |= (d & 0x7FFFFF);
+    result |= (d & ~(0x7FFFFF)) << 5;
     return result;
 }
 
@@ -259,7 +351,7 @@ uint64_t asm_ls(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err
     char event[MAX_EVENT_LEN];
     char *args[MAX_ARGS];
     int got_args = get_args(ic->input, &ic->line, &ic->col, args, MAX_ARGS, event, MAX_EVENT_LEN);
-    if (got_args != 3) {
+    if (got_args != 2 && got_args != 3) {
         *err = -1;
         return 0;
     }
@@ -269,12 +361,41 @@ uint64_t asm_ls(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err
     a = get_register_literal(args[0], err); if (*err) return 0;
     c = get_register_literal(args[1], err); if (*err) return 0;
     
-    int is_label;
-    d = label_or_num(ic, *pc, args[2], 0x7FFF, &is_label, err); if (*err) return 0;
-    if (is_label) d >>= shamt;
+    if (got_args == 3) {
+        int is_label;
+        d = label_or_num(ic, *pc, args[2], 0x7FFF, &is_label, err); if (*err) return 0;
+        if (is_label) d >>= shamt;
+    }
 
     result |= (a & 0x1F) << 23;
     result |= ((d >> shamt) & 0x7FFF) << 5;
+    result |= (c & 0x1F);
+    return result;
+}
+
+uint64_t asm_cr(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
+    uint32_t result = (opcode << 28) | (fn << 20);
+
+    char event[MAX_EVENT_LEN];
+    char *args[MAX_ARGS];
+    int got_args = get_args(ic->input, &ic->line, &ic->col, args, MAX_ARGS, event, MAX_EVENT_LEN);
+    if (got_args != 2 && got_args != 3) {
+        *err = -1;
+        return 0;
+    }
+
+    int a = 0, c = 0, d = 0, i = 1;
+
+    a = get_register_literal(args[0], err); if (*err) return 0;
+    
+    if (got_args == 3) {
+        c = get_register_literal(args[i++], err); if (*err) return 0;
+    }
+    
+    d = get_control_register_literal(args[i], err); if (*err) return 0;
+
+    result |= (a & 0x1F) << 23;
+    result |= (d & 0x7FFF) << 5;
     result |= (c & 0x1F);
     return result;
 }
@@ -295,6 +416,32 @@ uint64_t asm_ls_q(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *e
     return asm_ls(ic, pc, opcode, fn, err, 3);
 }
 
+uint64_t asm_bifn(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
+    uint32_t result = (opcode << 28) | (fn << 20);
+
+    char event[MAX_EVENT_LEN];
+    char *args[MAX_ARGS];
+    int got_args = get_args(ic->input, &ic->line, &ic->col, args, MAX_ARGS, event, MAX_EVENT_LEN);
+    if (got_args != 4) {
+        *err = -1;
+        return 0;
+    }
+
+    int a = 0, c = 0, shamt = 0, bit = 0;
+
+    a = get_register_literal(args[0], err); if (*err) return 0;
+    shamt = get_number(args[1], 0x3F, err); if (*err) return 0;
+    bit = get_number(args[2], 0x3F, err); if (*err) return 0;
+    c = get_register_literal(args[3], err); if (*err) return 0;
+    
+    int d = bit | (shamt << 6);
+
+    result |= (a & 0x1F) << 23;
+    result |= (d & 0xFFF) << 5;
+    result |= (c & 0x1F);
+    return result;
+}
+
 int main(int argc, char *argv[]) {
     if (argc != 3) {
         fprintf(stderr, "usage: %s <in_file> <out_file>\n", argv[0]);
@@ -309,7 +456,7 @@ int main(int argc, char *argv[]) {
 
     char event[MAX_EVENT_LEN];
     int len, err = 0;
-    uint64_t pc = 0;
+    uint64_t pc = 0x10000;
     while ((len = get_token(in->input, &in->line, &in->col, event, MAX_EVENT_LEN)) > 0) {
         if (event[len - 1] != ':') {
             asm_any(in, &pc, event, &err);
@@ -338,6 +485,7 @@ int main(int argc, char *argv[]) {
     }
     
     rewind(in->input);
+    pc = 0x10000;
 
     while ((len = get_token(in->input, &in->line, &in->col, event, MAX_EVENT_LEN)) > 0) {
         if (event[len - 1] != ':') {

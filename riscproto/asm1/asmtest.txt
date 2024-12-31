@@ -1,7 +1,0 @@
-l0:         a       rv,p0,p1
-            a       rv,rv,1,0xFF
-
-l1:         x       0,0,0,l1
-
-l2:         b       l1
-

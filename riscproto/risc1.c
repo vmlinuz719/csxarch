@@ -140,48 +140,34 @@ void *lcca_run(lcca_t *cpu) {
 }
 
 int main(int argc, char *argv[]) {
+    FILE *rom = NULL;
+    if (argc == 1) {
+        printf("Warning: running without IPL\n");
+    } else if (argc == 2) {
+        rom = fopen(argv[1], "rb");
+        if (rom == NULL) {
+            printf("Error: IPL image failed to open\n");
+            return EXIT_FAILURE;
+        }
+    } else {
+        fprintf(stderr, "usage: %s [in_file]\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+    
     lcca_bus_t bus;
     pthread_mutex_t cas_lock;
 
-    uint8_t *mem = malloc(65536);
+    uint8_t *mem = malloc(65536 * 32);
     bus.memory = mem;
-    bus.mem_limit = 65536;
+    
+    if (rom != NULL) {
+        fread(mem + 0x10000, sizeof(char), 0x10000, rom);
+        fclose(rom);
+    }
+    
+    bus.mem_limit = 65536 * 32;
     pthread_mutex_init(&cas_lock, NULL);
     bus.cas_lock = &cas_lock;
-
-    mem[0] = 0x60;
-    mem[1] = 0xFF;
-    mem[2] = 0xFF;
-    mem[3] = 0xFF;
-    mem[4] = 0xF0;
-    mem[5] = 0xFF;
-    mem[6] = 0xFF;
-    mem[7] = 0xFF;
-
-    mem[8] = 0xE0;
-    mem[9] = 0x70;
-    mem[10] = 0x00;
-    mem[11] = 0x00;
-
-    mem[12] = 0xE0;
-    mem[13] = 0xF0;
-    mem[14] = 0x00;
-    mem[15] = 0x00;
-
-    mem[16] = 0xE1;
-    mem[17] = 0x70;
-    mem[18] = 0x00;
-    mem[19] = 0x00;
-
-    mem[20] = 0xE1;
-    mem[21] = 0xF0;
-    mem[22] = 0x00;
-    mem[23] = 0x00;
-    
-    mem[24] = 0xE2;
-    mem[25] = 0x70;
-    mem[26] = 0x00;
-    mem[27] = 0x02;
 
     lcca_t cpu;
     memset(&cpu, 0, sizeof(cpu));
@@ -194,9 +180,7 @@ int main(int argc, char *argv[]) {
     cpu.operations[5] = lcca64_im_5;
     cpu.operations[6] = lcca64_im_6;
     cpu.operations[0xE] = lcca64_ls_e;
-    cpu.c_regs[CR_OD0] = 0xFFFFFFFFFFFFC00 | CR_OD_X | CR_OD_W;
-    cpu.c_regs[CR_OB0 + 1] = 0xFFFF000000000000;
-    cpu.c_regs[CR_OD0 + 1] = 0xFFFFFFFFFC00 | CR_OD_W | CR_OD_C;
+    cpu.pc = 0x10000;
     pthread_mutex_init(&(cpu.intr_mutex), NULL);
 
     cpu.running = 1;
