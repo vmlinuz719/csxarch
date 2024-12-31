@@ -36,6 +36,7 @@ struct label_cmd_def {
 };
 
 uint64_t asm_rr(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
+uint64_t asm_mv(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t asm_br(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t asm_br_j(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t asm_ls_c(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
@@ -50,46 +51,47 @@ uint64_t asm_tr(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err
 uint64_t asm_none(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 
 static struct instruction_def opcodes[] = {
-    {"a",       0, 0, 4, asm_rr},
-    {"s",       0, 1, 4, asm_rr},
-    {"n",       0, 2, 4, asm_rr},
-    {"o",       0, 3, 4, asm_rr},
-    {"x",       0, 4, 4, asm_rr},
-    {"sl",      0, 5, 4, asm_rr},
-    {"asl",     0, 6, 4, asm_rr},
+    {"add",     0, 0, 4, asm_rr},
+    {"mov",     0, 0, 4, asm_mv},
+    {"sub",     0, 1, 4, asm_rr},
+    {"and",     0, 2, 4, asm_rr},
+    {"or",      0, 3, 4, asm_rr},
+    {"xor",     0, 4, 4, asm_rr},
+    {"shl",     0, 5, 4, asm_rr},
+    {"sal",     0, 6, 4, asm_rr},
     {"setxc",   0, 7, 4, asm_rr},
 
-    {"b",       1, 0, 4, asm_br},
-    {"bl",      1, 1, 4, asm_br},
+    {"br",      1, 0, 4, asm_br},
+    {"call",    1, 1, 4, asm_br},
     {"blr",     1, 2, 4, asm_br},
     {"ret",     1, 2, 4, asm_none},
-    {"j",       1, 3, 4, asm_br_j},
+    {"jmp",     1, 3, 4, asm_br_j},
     {"bez",     1, 4, 4, asm_br},
     {"bnz",     1, 5, 4, asm_br},
     {"bgz",     1, 6, 4, asm_br},
     {"blez",    1, 7, 4, asm_br},
 
-    {"lc",      2, 0, 4, asm_ls_c},
-    {"lcz",     2, 1, 4, asm_ls_c},
-    {"lw",      2, 2, 4, asm_ls_w},
-    {"lwz",     2, 3, 4, asm_ls_w},
-    {"l",       2, 4, 4, asm_ls_l},
+    {"ldc",     2, 0, 4, asm_ls_c},
+    {"ldcz",    2, 1, 4, asm_ls_c},
+    {"ldw",     2, 2, 4, asm_ls_w},
+    {"ldwz",    2, 3, 4, asm_ls_w},
+    {"ld",      2, 4, 4, asm_ls_l},
     {"stc",     2, 5, 4, asm_ls_c},
     {"stw",     2, 6, 4, asm_ls_w},
     {"st",      2, 7, 4, asm_ls_l},
     
-    {"lz",      3, 0, 4, asm_ls_l},
-    {"lq",      3, 1, 4, asm_ls_q},
-    {"lca",     3, 2, 4, asm_ls_c},
+    {"ldz",     3, 0, 4, asm_ls_l},
+    {"ldq",     3, 1, 4, asm_ls_q},
+    {"ldca",    3, 2, 4, asm_ls_c},
     {"stq",     3, 3, 4, asm_ls_q},
     
     {"extn",    3, 4, 4, asm_bifn},
     {"extnm",   3, 5, 4, asm_bifn},
     {"bifn",    3, 6, 4, asm_bifn},
     
-    {"li",      4, 0, 4, asm_im},
-    {"lisl",    5, 0, 4, asm_im},
-    {"lgisl",   6, 0, 8, asm_lgisl},
+    {"ldi",     4, 0, 4, asm_im},
+    {"ldis",    5, 0, 4, asm_im},
+    {"ldgis",   6, 0, 8, asm_lgisl},
     
     {"mfcr",    14, 3, 4, asm_cr},
     {"mtcr",    14, 4, 4, asm_cr},
@@ -213,6 +215,27 @@ uint64_t asm_rr(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err
     result |= (b & 0x1F) << 5;
     result |= (c & 0x1F);
     result |= (d & 0x3FF) << 10;
+    return result;
+}
+
+uint64_t asm_mv(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
+    uint32_t result = (opcode << 28) | (fn << 20);
+
+    char event[MAX_EVENT_LEN];
+    char *args[MAX_ARGS];
+    int got_args = get_args(ic->input, &ic->line, &ic->col, args, MAX_ARGS, event, MAX_EVENT_LEN);
+    if (got_args != 2) {
+        *err = -1;
+        return 0;
+    }
+
+    int a = 0, b = 0;
+    
+    a = get_register_literal(args[0], err); if (*err) return 0;
+    b = get_register_literal(args[1], err); if (*err) return 0;
+
+    result |= (a & 0x1F) << 23;
+    result |= (b & 0x1F) << 5;
     return result;
 }
 

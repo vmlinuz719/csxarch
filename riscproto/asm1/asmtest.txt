@@ -1,25 +1,30 @@
-start:      li      p0,10
-            bl      fibn            ; fibn(10) -> 0x37
+start:      ldi     p0,10
+            call    fibn            ; fibn(10) -> 0x37
             
             hvc     0,0             ; print PC, PSQ
-            hvc     1,0             ; print general registers
+            hvc     1,0             ; print general registers (rv should = 37)
             hvc     4,0             ; exit 0
+            
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        ;
+        ;   fibn - nth fibonacci number
+        ;       p0:     i64
+        ;       rv:     i64
+        ;
 
-fibn:       x       a0,a0           ; a
+fibn:       xor     rv,rv           ; a
 
             bez     p0,fibn_exit
             
-            li      a1,1            ; b
-            x       a2,a2           ; i
+            ldi     a1,1            ; b
+            xor     a2,a2           ; i
             
-fibn_l0:    a       a2,a2,0,1
-            a       a3,a0,a1
-            a       a0,a1,0
-            a       a1,a3,0
-            
-            s       a3,p0,a2
-            bnz     a3,fibn_l0
+fibn_l0:    add     a3,rv,a1
+            add     a2,a2,0,1
+            mov     rv,a1
+            sub     a0,p0,a2
+            mov     a1,a3
+            bnz     a0,fibn_l0
 
-fibn_exit:  a       rv,a0,0
-            ret
+fibn_exit:  ret
 
