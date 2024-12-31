@@ -486,6 +486,9 @@ int main(int argc, char *argv[]) {
     
     rewind(in->input);
     pc = 0x10000;
+    err = 0;
+    in->line = 0;
+    in->col = 0;
 
     while ((len = get_token(in->input, &in->line, &in->col, event, MAX_EVENT_LEN)) > 0) {
         if (event[len - 1] != ':') {
