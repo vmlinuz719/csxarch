@@ -161,7 +161,7 @@ int main(int argc, char *argv[]) {
     bus.memory = mem;
     
     if (rom != NULL) {
-        fread(mem + 0x10000, sizeof(char), 0x10000, rom);
+        int x = fread(mem + 0x10000, sizeof(char), 0x10000, rom);
         fclose(rom);
     }
     

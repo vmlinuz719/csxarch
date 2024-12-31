@@ -1,8 +1,8 @@
 start:      li      p0,10
-            bl      fibn
+            bl      fibn            ; fibn(10) -> 0x37
             
-            hvc     0,0             ; print PC
-            hvc     1,0             ; print PSQ
+            hvc     0,0             ; print PC, PSQ
+            hvc     1,0             ; print general registers
             hvc     4,0             ; exit 0
 
 fibn:       x       a0,a0           ; a
