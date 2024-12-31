@@ -1,0 +1,25 @@
+start:      li      p0,10
+            bl      fibn
+            b       end
+
+fibn:       x       a0,a0           ; a
+
+            bez     p0,fibn_exit
+            
+            li      a1,1            ; b
+            x       a2,a2           ; i
+            
+fibn_l0:    a       a2,a2,0,1
+            a       a3,a0,a1
+            a       a0,a1,0
+            a       a1,a3,0
+            
+            s       a3,p0,a2
+            bnz     a3,fibn_l0
+
+fibn_exit:  a       rv,a0,0
+            ret
+
+end:        hvc     0,0
+            hvc     1,0
+            hvc     4,0
