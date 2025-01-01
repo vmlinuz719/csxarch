@@ -117,7 +117,7 @@ uint64_t translate(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_access_t a
         cpu->c_regs[CR_OD0 + object] |= CR_OD_D;
     }
 
-    // printf("A %lX\n", base + offset);
+    // fprintf(stderr, "A %lX\n", base + offset);
     return base + offset;
 }
 
@@ -248,9 +248,9 @@ static inline void print_regs(uint64_t *regs, const char *names[]) {
     int newline_ctr = 0;
 
     while (1) {
-        printf("%s: %16lX ", names[index], regs[r_index++]);
+        fprintf(stderr, "%s: %16lX ", names[index], regs[r_index++]);
         if (names[++index] == NULL) {
-            printf("\n\n");
+            fprintf(stderr, "\n\n");
             newline_ctr = 0;
             if (names[++index] == NULL) {
                 break;
@@ -258,7 +258,7 @@ static inline void print_regs(uint64_t *regs, const char *names[]) {
         }
 
         else if (++newline_ctr == 3) {
-            printf("\n");
+            fprintf(stderr, "\n");
             newline_ctr = 0;
         }
     }
@@ -271,7 +271,7 @@ static inline void print_bits(uint64_t n, const char *bits) {
     int len = strlen(bits);
     for (int i = len; i > 0;  i--) {
         int shamt = i - 1;
-        printf("%c", (n >> shamt) & 1 ? bits[len - i] : ' ');
+        fprintf(stderr, "%c", (n >> shamt) & 1 ? bits[len - i] : ' ');
     }
 }
 
@@ -283,9 +283,9 @@ void simdbg_0(lcca_t *cpu, uint32_t inst) {
 
     switch (a) {
         case 0: {
-            printf(" PC: %16lX PSQ: %016lX (", cpu->pc, cpu->c_regs[CR_PSQ]);
+            fprintf(stderr, " PC: %16lX PSQ: %016lX (", cpu->pc, cpu->c_regs[CR_PSQ]);
             print_bits(cpu->c_regs[CR_PSQ], psq_bits);
-            printf(")\n\n");
+            fprintf(stderr, ")\n\n");
         } break;
 
         case 1: {
@@ -298,13 +298,17 @@ void simdbg_0(lcca_t *cpu, uint32_t inst) {
 
         case 3: {
             for (int i = 0; i < 16; i++) {
-                printf("Object %01X: %16lX (", i, cpu->c_regs[CR_OB0 + i]);
+                fprintf(stderr, "Object %01X: %16lX (", i, cpu->c_regs[CR_OB0 + i]);
                 print_bits(cpu->c_regs[CR_OD0 + i], d_bits);
-                printf(") + %15lX\n", cpu->c_regs[CR_OD0 + i] & 0x0FFFFFFFFFFFFC00);
+                fprintf(stderr, ") + %15lX\n", cpu->c_regs[CR_OD0 + i] & 0x0FFFFFFFFFFFFC00);
             }
         } break;
-
+        
         case 4: {
+            fprintf(stderr, "%2d: %lX\n", RC(inst), c);
+        } break;
+
+        case 31: {
             int rc = (int) c;
             exit(rc);
         } break;
@@ -489,9 +493,9 @@ void lcca64_ls_e(lcca_t *cpu, uint32_t inst) {
 }
 
 void lcca64_print(lcca_t *cpu) {
-    printf("%%PC: %016lX \n", cpu->pc);
+    fprintf(stderr, "%%PC: %016lX \n", cpu->pc);
     for (int i = 0; i < 32; i += 2) {
-        printf(
+        fprintf(stderr, 
             "%%%02d: %016lX %%%02d: %016lX \n",
             i, get_reg_q(cpu, i),
             i + 1, get_reg_q(cpu, i + 1)

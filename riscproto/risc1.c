@@ -142,11 +142,11 @@ void *lcca_run(lcca_t *cpu) {
 int main(int argc, char *argv[]) {
     FILE *rom = NULL;
     if (argc == 1) {
-        printf("Warning: running without IPL\n");
+        fprintf(stderr, "Warning: running without IPL\n");
     } else if (argc == 2) {
         rom = fopen(argv[1], "rb");
         if (rom == NULL) {
-            printf("Error: IPL image failed to open\n");
+            fprintf(stderr, "Error: IPL image failed to open\n");
             return EXIT_FAILURE;
         }
     } else {

@@ -3,7 +3,7 @@ start:      ldi     p0,10
             
             hvc     0,0             ; print PC, PSQ
             hvc     1,0             ; print general registers (rv should = 37)
-            hvc     4,0             ; exit 0
+            hvc     31,0            ; exit 0
             
         ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         ;
