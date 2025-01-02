@@ -38,15 +38,16 @@ void lcca64_br_1(lcca_t *cpu, uint32_t inst) {
         } break;
 
         case 1: {
+            cpu->pc = a + (d << 2);
+        } break;
+
+        case 2: {
             set_reg_q(cpu, R_ABI_LR, cpu->pc);
             cpu->pc += a + (d << 2);
         } break;
 
-        case 2: {
-            cpu->pc = get_reg_q(cpu, R_ABI_LR) + (a + (d << 2));
-        } break;
-
         case 3: {
+            set_reg_q(cpu, R_ABI_LR, cpu->pc);
             cpu->pc = a + (d << 2);
         } break;
 

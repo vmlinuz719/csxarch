@@ -49,7 +49,7 @@ uint64_t asm_im(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err
 uint64_t asm_lgisl(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t asm_cr(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t asm_tr(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
-uint64_t asm_none(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
+uint64_t asm_ret(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 
 static struct instruction_def opcodes[] = {
     {"add",     0, 0, 4, asm_rr},
@@ -65,10 +65,10 @@ static struct instruction_def opcodes[] = {
     {"setxc",   0, 7, 4, asm_rr},
 
     {"br",      1, 0, 4, asm_br},
-    {"call",    1, 1, 4, asm_br},
-    {"blr",     1, 2, 4, asm_br},
-    {"ret",     1, 2, 4, asm_none},
-    {"jmp",     1, 3, 4, asm_br_j},
+    {"jmp",     1, 1, 4, asm_br_j},
+    {"ret",     1, 1, 4, asm_ret},
+    {"call",    1, 2, 4, asm_br},
+    {"callf",   1, 3, 4, asm_br_j},
     {"bez",     1, 4, 4, asm_br},
     {"bnz",     1, 5, 4, asm_br},
     {"bgz",     1, 6, 4, asm_br},
@@ -362,8 +362,10 @@ uint64_t asm_tr(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err
     return result;
 }
 
-uint64_t asm_none(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
+uint64_t asm_ret(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
     uint32_t result = (opcode << 28) | (fn << 20);
+    int a = 31;
+    result |= (a & 0x1F) << 23;
     return result;
 }
 
