@@ -19,7 +19,7 @@ void lcca64_rr_0(lcca_t *cpu, uint32_t inst) {
         case 0: set_reg_q(cpu, RA(inst), b + c + d); break;
         case 1: set_reg_q(cpu, RA(inst), b - (c + d)); break;
         case 2: set_reg_q(cpu, RA(inst), b & (c | d)); break;
-        case 3: set_reg_q(cpu, RA(inst), b | (c & ~d)); break;
+        case 3: set_reg_q(cpu, RA(inst), b | (c | d)); break;
         case 4: set_reg_q(cpu, RA(inst), b ^ (c ^ d)); break;
         case 5: set_reg_q(cpu, RA(inst), sh(b, c + d)); break;
         case 6: set_reg_q(cpu, RA(inst), sha(b, c + d)); break;

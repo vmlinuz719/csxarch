@@ -15,11 +15,17 @@ void emit(struct input_ctx *ic, uint64_t value, int size) {
         for (int i = 0; i < size; i++) {
             int shamt = ((size - 1) * 8) - (i * 8);
             char ch = (char)((value >> shamt) & 0xFF);
-            printf("%02hhX", ch);
             fwrite(&ch, 1, 1, ic->output);
         }
-        printf("\n");
     }
+}
+
+int is_power_2(uint64_t i) {
+    uint64_t test = 1;
+    for (int j = 0; j < 64; j++) {
+        if (i == test << j) return 1;
+    }
+    return 0;
 }
 
 struct instruction_def {
@@ -50,6 +56,9 @@ uint64_t asm_lgisl(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *
 uint64_t asm_cr(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t asm_tr(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t asm_ret(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
+
+uint64_t define(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
+uint64_t align(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 
 static struct instruction_def opcodes[] = {
     {"add",     0, 0, 4, asm_rr},
@@ -102,6 +111,9 @@ static struct instruction_def opcodes[] = {
     {"svc",     14, 5, 4, asm_ls_c},
     {"trap",    14, 6, 4, asm_tr},
     {"hvc",     14, 7, 4, asm_ls_c},
+
+    {".def",     0,0,0, define},
+    {".align",   0,0,0, align},
 };
 
 uint64_t label_cmd_gh(uint64_t pc, uint64_t label) {
@@ -117,7 +129,7 @@ uint64_t label_cmd_h(uint64_t pc, uint64_t label) {
 }
 
 uint64_t label_cmd_l(uint64_t pc, uint64_t label) {
-    return label & 0x1F;
+    return label & 0x1FF;
 }
 
 static struct label_cmd_def label_cmds[] = {
@@ -180,6 +192,51 @@ uint64_t asm_any(struct input_ctx *ic, uint64_t *pc, char *mnemonic, int *err) {
     }
 
     *err = -1;
+    return 0;
+}
+
+uint64_t define(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
+    uint32_t result = (opcode << 28) | (fn << 20);
+
+    char event[MAX_EVENT_LEN];
+    char *args[MAX_ARGS];
+    int got_args = get_args(ic->input, &ic->line, &ic->col, args, MAX_ARGS, event, MAX_EVENT_LEN);
+    if (got_args != 2) {
+        *err = -1;
+        return 0;
+    }
+
+    uint64_t d = label_or_num(ic, *pc, args[1], 0xFFFFFFFFFFFFFFFF, NULL, err); if (*err) return 0;
+    struct label_def *r = register_label(ic->ll, args[0], d);
+
+    return r == NULL ? -1 : 0;
+}
+
+uint64_t align(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
+    uint32_t result = (opcode << 28) | (fn << 20);
+
+    char event[MAX_EVENT_LEN];
+    char *args[MAX_ARGS];
+    int got_args = get_args(ic->input, &ic->line, &ic->col, args, MAX_ARGS, event, MAX_EVENT_LEN);
+    if (got_args != 1) {
+        *err = -1;
+        return 0;
+    }
+
+    uint64_t d = label_or_num(ic, *pc, args[0], 0xFFFFFFFFFFFFFFFF, NULL, err); if (*err) return 0;
+
+    if (!is_power_2(d)) { *err = -1; return 0; }
+
+    if (*pc % d) {
+        uint64_t new_pc = (*pc + d) & (~(d - 1));
+        if (ic->output != NULL) {
+            for (uint64_t i = 0; i < (new_pc - *pc); i++) {
+                emit(ic, 0, 1);
+            }
+        }
+        *pc = new_pc;
+    }
+
     return 0;
 }
 
@@ -526,6 +583,11 @@ int main(int argc, char *argv[]) {
                 printf("%16lX:%s\n", r->value, r->label);
             }
         }
+    }
+
+    if (err) {
+        close_input(in);
+        exit(EXIT_FAILURE);
     }
 
     if (open_output(in, argv[2])) {
