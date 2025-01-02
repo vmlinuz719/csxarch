@@ -114,9 +114,9 @@ static struct instruction_def opcodes[] = {
     {"trap",    14, 6, 4, asm_tr},
     {"hvc",     14, 7, 4, asm_ls_c},
 
-    {".def",     0,0,0, define},
-    {".align",   0,0,0, align},
-    {".origin",  0,0,0, origin},
+    {"define",  0,0,0, define},
+    {"align",   0,0,0, align},
+    {"origin",  0,0,0, origin},
 
     {"dc",   8,0,1, data},
     {"dw",   16,0,2, data},

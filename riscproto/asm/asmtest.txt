@@ -1,5 +1,5 @@
-start:      ldis    ct,data@h
-            or      ct,ct,0,data@l
+start:      ldis    a0,data@h
+            or      ct,a0,0,data@l
 
             ldi     p0,10
             call    fibn            ; fibn(10) -> 0x37
@@ -31,6 +31,6 @@ fibn_l0:    add     a3,rv,a1
 
 fibn_exit:  ret
 
-            .align  0x10
+            align   0x10
 
 data:
