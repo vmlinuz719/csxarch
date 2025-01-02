@@ -1,12 +1,8 @@
-            .align  32
-            .def    testlbl,0xDEADBEEF
+start:      ldis    ct,data@h
+            or      ct,ct,0,data@l
 
-start:      ldi     p0,10
+            ldi     p0,10
             call    fibn            ; fibn(10) -> 0x37
-            
-            ldis    a0,testlbl@h
-            or      a0,a0,0,testlbl@l
-            bifn    a1,16,15,a0
             
             hvc     0,0             ; print PC, PSQ
             hvc     1,0             ; print general registers (rv should = 37)
@@ -34,3 +30,7 @@ fibn_l0:    add     a3,rv,a1
             bnz     a0,fibn_l0
 
 fibn_exit:  ret
+
+            .align  0x10
+
+data:
