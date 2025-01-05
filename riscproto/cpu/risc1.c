@@ -106,6 +106,10 @@ void error(lcca_t *cpu, lcca_error_t e, uint64_t fi, uint64_t fa) {
     }
 }
 
+void lcca_wake(lcca_t *cpu) {
+    pthread_cond_signal(&(cpu->wake));
+}
+
 void *lcca_run(lcca_t *cpu) {
     // TODO: External interrupts
 
@@ -113,26 +117,38 @@ void *lcca_run(lcca_t *cpu) {
     lcca_error_t fetch_error;
 
     while(cpu->running) {
-        fetch_error = 0;
-        uint32_t inst;
-        uint64_t addr = translate(cpu, cpu->pc, LONG, FETCH, &fetch_error);
-        if (!fetch_error) {
-            inst = fetch_u4b(bus, addr, &fetch_error);
-        }
-        if (fetch_error) error(cpu, fetch_error, 0, addr);
-        else if (cpu->c_regs[CR_PSQ] & CR_PSQ_LG) {
-            cpu->pc += 4;
-            uint64_t a = get_reg_q(cpu, RA(inst));
-            set_reg_q(cpu, RA(inst), a | ((uint64_t) LGISL2_IMM(inst) << 14));
-            cpu->c_regs[CR_PSQ] ^= CR_PSQ_LG;
-        }
-        else {
-            void (*operation) (struct lcca_t *, uint32_t) = cpu->operations[OPCODE(inst)];
-            if (operation == NULL) error(cpu, EMLT, inst, cpu->pc);
-            else {
-                cpu->pc += 4;
-                operation(cpu, inst);
+        if (!(cpu->c_regs[CR_PSQ] & CR_PSQ_WS)) {
+            fetch_error = 0;
+            uint32_t inst;
+            uint64_t addr = translate(cpu, cpu->pc, LONG, FETCH, &fetch_error);
+            if (!fetch_error) {
+                inst = fetch_u4b(bus, addr, &fetch_error);
             }
+            if (fetch_error) error(cpu, fetch_error, 0, addr);
+            else if (cpu->c_regs[CR_PSQ] & CR_PSQ_LG) {
+                cpu->pc += 4;
+                uint64_t a = get_reg_q(cpu, RA(inst));
+                set_reg_q(cpu, RA(inst), a | ((uint64_t) LGISL2_IMM(inst) << 14));
+                cpu->c_regs[CR_PSQ] ^= CR_PSQ_LG;
+            }
+            else {
+                void (*operation) (struct lcca_t *, uint32_t) = cpu->operations[OPCODE(inst)];
+                if (operation == NULL) error(cpu, EMLT, inst, cpu->pc);
+                else {
+                    cpu->pc += 4;
+                    operation(cpu, inst);
+                }
+            }
+        } else {
+            pthread_mutex_lock(&(cpu->intr_mutex));
+            if (!(cpu->c_regs[CR_PSQ] & CR_PSQ_EI)) {
+                fprintf(stderr, "CPU disabled, press Ctrl-C to exit emulator\n");
+            }
+            pthread_cond_wait(
+                &(cpu->wake),
+                &(cpu->intr_mutex)
+            );
+            pthread_mutex_unlock(&(cpu->intr_mutex));
         }
     }
 
@@ -182,11 +198,13 @@ int main(int argc, char *argv[]) {
     cpu.operations[0xE] = lcca64_ls_e;
     cpu.pc = 0x10000;
     pthread_mutex_init(&(cpu.intr_mutex), NULL);
+    pthread_cond_init(&(cpu.wake), NULL);
 
     cpu.running = 1;
     lcca_run(&cpu);
 
     free(mem);
+    pthread_cond_destroy(&(cpu.wake));
     pthread_mutex_destroy(&(cpu.intr_mutex));
     pthread_mutex_destroy(&cas_lock);
 

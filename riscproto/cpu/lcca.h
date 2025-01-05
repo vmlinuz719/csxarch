@@ -78,6 +78,7 @@ typedef struct lcca_t {
     lcca_bus_t *bus;
     pthread_t *run;
     pthread_mutex_t intr_mutex;
+    pthread_cond_t wake;
 
     uint64_t regs[32];
     uint64_t c_regs[CR_MAX];
@@ -129,6 +130,7 @@ typedef enum {
 uint64_t translate(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_access_t access_type, lcca_error_t *e);
 
 void *lcca_run(lcca_t *);
+void lcca_wake(lcca_t *);
 
 void lcca64_print(lcca_t *);
 
