@@ -41,10 +41,10 @@
 #define CR_PSQ_PL           (1 << 1)
 #define CR_PSQ_WS           (1 << 2)
 #define CR_PSQ_LG           (1 << 3)
-#define CR_PSQ_AE           (1 << 4)
-#define CR_PSQ_TE           (1 << 5)
-#define CR_PSQ_OC           (1 << 6)
-#define CR_PSQ_INTR_ENTRY_MASK 0xFFFFFFFFFFFFFFF0
+#define CR_PSQ_OC           (1 << 4)
+#define CR_PSQ_AE           (1 << 5)
+#define CR_PSQ_TE           (1 << 6)
+#define CR_PSQ_INTR_ENTRY_MASK 0xFFFFFFFFFFFFFFE0
 
 #define CR_APC              1
 #define CR_APSQ             2

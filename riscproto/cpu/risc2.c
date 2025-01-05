@@ -265,7 +265,7 @@ static inline void print_regs(uint64_t *regs, const char *names[]) {
     }
 }
 
-const char *psq_bits = "OTALWPI";
+const char *psq_bits = "TAOLWPI";
 const char *d_bits = "XWRxwBCDE*";
 
 static inline void print_bits(uint64_t n, const char *bits) {
