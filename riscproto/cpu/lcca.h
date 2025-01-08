@@ -131,6 +131,7 @@ uint64_t translate(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_access_t a
 
 void *lcca_run(lcca_t *);
 void lcca_wake(lcca_t *);
+void lcca_intr(void *dev, int intr, uint64_t msg);
 
 void lcca64_print(lcca_t *);
 

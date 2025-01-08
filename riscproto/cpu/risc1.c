@@ -110,13 +110,35 @@ void lcca_wake(lcca_t *cpu) {
     pthread_cond_signal(&(cpu->wake));
 }
 
-void *lcca_run(lcca_t *cpu) {
-    // TODO: External interrupts
+void lcca_intr(void *dev, int intr, uint64_t msg) {
+    lcca_t *cpu = dev;
 
+    pthread_mutex_lock(&(cpu->intr_mutex));
+    cpu->intr_msg[intr] = msg;
+    cpu->intr_pending |= 1L << intr;
+    pthread_mutex_unlock(&(cpu->intr_mutex));
+    lcca_wake(cpu);
+}
+
+void *lcca_run(lcca_t *cpu) {
     lcca_bus_t *bus = cpu->bus;
     lcca_error_t fetch_error;
 
+    uint64_t now_pending;
+
     while(cpu->running) {
+        if ((cpu->c_regs[CR_PSQ] & CR_PSQ_EI) && (now_pending = cpu->intr_pending & cpu->c_regs[CR_EIM])) {
+            for (int i = 0; i < EIP_EXTERNAL_INTRS; i++) {
+                if (now_pending & (1L << i)) {
+                    pthread_mutex_lock(&(cpu->intr_mutex));
+                    cpu->intr_pending ^= 1L << i;
+                    cpu->c_regs[CR_EIP] = cpu->intr_msg[i];
+                    pthread_mutex_unlock(&(cpu->intr_mutex));
+                    intr_internal(cpu, EXTN, 0, 0);
+                }
+            }
+        }
+
         if (!(cpu->c_regs[CR_PSQ] & CR_PSQ_WS)) {
             fetch_error = 0;
             uint32_t inst;
