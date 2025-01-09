@@ -9,13 +9,31 @@
 #include "mmio.h"
 #include "lcca.h"
 
+#define SIGN_BIT 0x8000000000000000
+
 void lcca64_rr_0(lcca_t *cpu, uint32_t inst) {
     uint64_t b = get_reg_q(cpu, RB(inst));
     uint64_t c = get_reg_q(cpu, RC(inst));
     uint64_t d = RR_IMM(inst);
     d = EXT10(d);
+    uint64_t fn = FN(inst);
 
-    switch (FN(inst)) {
+    if ((cpu->c_regs[CR_PSQ] & CR_PSQ_OC) && (fn < 2)) {
+        int overflow;
+        uint64_t addend = c + d;
+        if (fn == 1) addend = ~addend + 1;
+        uint64_t sum = b + addend;
+
+        overflow = ((b & SIGN_BIT) && (addend & SIGN_BIT) && !(sum & SIGN_BIT))
+            || (!(b & SIGN_BIT) && !(addend & SIGN_BIT) && (sum & SIGN_BIT));
+
+        if (overflow) {
+            error(cpu, OVRF, 0, 0);
+            return;
+        }
+    }
+
+    switch (fn) {
         case 0: set_reg_q(cpu, RA(inst), b + c + d); break;
         case 1: set_reg_q(cpu, RA(inst), b - (c + d)); break;
         case 2: set_reg_q(cpu, RA(inst), b & (c | d)); break;
