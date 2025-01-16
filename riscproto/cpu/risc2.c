@@ -96,7 +96,7 @@ void lcca64_br_1(lcca_t *cpu, uint32_t inst) {
 }
 
 uint64_t translate(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_access_t access_type, lcca_error_t *e) {
-    if (!(cpu->c_regs[CR_PSQ] & CR_PSQ_TE)) return addr;
+    if (!(cpu->c_regs[CR_PSQ] & CR_PSQ_PGID)) return addr;
 
     if (addr & ((1 << size) - 1)) {
         *e = access_type == FETCH ? XALT : DALT;
@@ -283,14 +283,14 @@ static inline void print_regs(uint64_t *regs, const char *names[]) {
     }
 }
 
-const char *psq_bits = "TAOLWPI";
-const char *d_bits = "XWRxwBCDE*";
+const char *psq_bits = "AOLWPI";
+const char *d_bits = "XWRxwBCDEP";
 
 static inline void print_bits(uint64_t n, const char *bits) {
     int len = strlen(bits);
     for (int i = len; i > 0;  i--) {
         int shamt = i - 1;
-        fprintf(stderr, "%c", (n >> shamt) & 1 ? bits[len - i] : ' ');
+        fprintf(stderr, "%c", (n >> shamt) & 1 ? bits[len - i] : '-');
     }
 }
 
@@ -302,7 +302,7 @@ void simdbg_0(lcca_t *cpu, uint32_t inst) {
 
     switch (a) {
         case 0: {
-            fprintf(stderr, " PC: %16lX PSQ: %016lX (", cpu->pc, cpu->c_regs[CR_PSQ]);
+            fprintf(stderr, " PC: %16lX PSQ: %016lX (%03lX", cpu->pc, cpu->c_regs[CR_PSQ], (cpu->c_regs[CR_PSQ] & CR_PSQ_PGID) >> 6);
             print_bits(cpu->c_regs[CR_PSQ], psq_bits);
             fprintf(stderr, ")\n\n");
         } break;
