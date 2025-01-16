@@ -472,6 +472,7 @@ void lcca64_ls_e(lcca_t *cpu, uint32_t inst) {
 
             else {
                 result = c;
+                cpu->c_regs[CR_APC] += d << 2;
                 intr_restore(cpu);
             }
         } break;
