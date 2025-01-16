@@ -104,6 +104,7 @@ void error(lcca_t *cpu, lcca_error_t e, uint64_t fi, uint64_t fa);
 
 void intr_internal(lcca_t *cpu, int which, uint64_t fi, uint64_t fa);
 void intr_restore(lcca_t *cpu);
+void intr_restore_disp(lcca_t *cpu, uint64_t d);
 
 void lcca64_rr_0(lcca_t *, uint32_t);
 void lcca64_br_1(lcca_t *, uint32_t);

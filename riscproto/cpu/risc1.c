@@ -69,8 +69,8 @@ void intr_internal(lcca_t *cpu, int which, uint64_t fi, uint64_t fa) {
     cpu->c_regs[CR_FA] = fa;
 }
 
-void intr_restore(lcca_t *cpu) {
-    cpu->pc = cpu->c_regs[CR_APC];
+void intr_restore_disp(lcca_t *cpu, uint64_t d) {
+    cpu->pc = cpu->c_regs[CR_APC] + d;
     cpu->c_regs[CR_PSQ] = cpu->c_regs[CR_APSQ];
 
     if (cpu->c_regs[CR_PSQ] & CR_PSQ_AE) {
@@ -78,6 +78,10 @@ void intr_restore(lcca_t *cpu) {
         cpu->regs[R_ABI_SP] = cpu->regs[R_ABI_X8];
         cpu->regs[R_ABI_LR] = cpu->regs[R_ABI_X9];
     }
+}
+
+void intr_restore(lcca_t *cpu) {
+    intr_restore_disp(cpu, 0);
 }
 
 void error(lcca_t *cpu, lcca_error_t e, uint64_t fi, uint64_t fa) {
