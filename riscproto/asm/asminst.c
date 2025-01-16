@@ -50,6 +50,7 @@ uint64_t asm_ls_c(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *e
 uint64_t asm_ls_w(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t asm_ls_l(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t asm_ls_q(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
+uint64_t asm_ls_rex(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t asm_bifn(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t asm_im(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t asm_lgisl(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
@@ -107,10 +108,10 @@ static struct instruction_def opcodes[] = {
     {"ldis",    5, 0, 4, asm_im},
     {"ldgis",   6, 0, 8, asm_lgisl},
     
+    {"svc",     14, 0, 4, asm_ls_c},
     {"mfcr",    14, 3, 4, asm_cr},
     {"mtcr",    14, 4, 4, asm_cr},
-    {"rex",     14, 5, 4, asm_ls_c},
-    {"svc",     14, 5, 4, asm_ls_c},
+    {"rex",     14, 5, 4, asm_ls_rex},
     {"trap",    14, 6, 4, asm_tr},
     {"hvc",     14, 7, 4, asm_ls_c},
 
@@ -521,6 +522,34 @@ uint64_t asm_ls(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err
 
     result |= (a & 0x1F) << 23;
     result |= ((d >> shamt) & 0x7FFF) << 5;
+    result |= (c & 0x1F);
+    return result;
+}
+
+uint64_t asm_ls_rex(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
+    uint32_t result = (opcode << 28) | (fn << 20);
+
+    char event[MAX_EVENT_LEN];
+    char *args[MAX_ARGS];
+    int got_args = get_args(ic->input, &ic->line, &ic->col, args, MAX_ARGS, event, MAX_EVENT_LEN);
+    if (got_args > 3) {
+        *err = -1;
+        return 0;
+    }
+
+    int a = 0, c = 0, d = 0;
+
+    if (got_args == 2 || got_args == 3) {
+        a = get_register_literal(args[0], err); if (*err) return 0;
+        c = get_register_literal(args[1], err); if (*err) return 0;
+    }
+    
+    if (got_args == 1 || got_args == 3) {
+        d = label_or_num(ic, *pc, args[got_args - 1], 0x7FFF, NULL, err); if (*err) return 0;
+    }
+
+    result |= (a & 0x1F) << 23;
+    result |= (d & 0x7FFF) << 5;
     result |= (c & 0x1F);
     return result;
 }

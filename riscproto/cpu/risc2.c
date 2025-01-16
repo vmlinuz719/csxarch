@@ -426,6 +426,11 @@ void lcca64_ls_e(lcca_t *cpu, uint32_t inst) {
     uint64_t addr;
 
     switch (FN(inst)) {
+        case 0: {
+            error(cpu, SVCT, inst, 0);
+            return;
+        }
+
         case 3: {
             if (cpu->c_regs[CR_PSQ] & CR_PSQ_PL) {
                 error(cpu, IPLT, inst, 0);
@@ -460,11 +465,6 @@ void lcca64_ls_e(lcca_t *cpu, uint32_t inst) {
         } break;
         
         case 5: {
-            if (d != 0) {
-                error(cpu, SVCT, inst, 0);
-                return;
-            }
-
             if (cpu->c_regs[CR_PSQ] & CR_PSQ_PL) {
                 error(cpu, IPLT, inst, 0);
                 return;
@@ -472,7 +472,7 @@ void lcca64_ls_e(lcca_t *cpu, uint32_t inst) {
 
             else {
                 result = c;
-                intr_restore(cpu);
+                intr_restore_disp(cpu, d << 2);
             }
         } break;
 
