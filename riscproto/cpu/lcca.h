@@ -6,6 +6,7 @@
 
 #include "error.h"
 #include "mmio.h"
+#include "tlb.h"
 
 #define EXT4(x)             ((x) & (1L << 3)  ? (x) | 0xFFFFFFFFFFFFFFF0 : (x))
 #define EXT8(x)             ((x) & (1L << 7)  ? (x) | 0xFFFFFFFFFFFFFF00 : (x))
@@ -87,6 +88,8 @@ typedef struct lcca_t {
     uint64_t intr_pending, intr_msg[EIP_EXTERNAL_INTRS];
 
     void (*operations[16]) (struct lcca_t *, uint32_t);
+
+    struct tlb tlb;
 
     int running;
 } lcca_t;

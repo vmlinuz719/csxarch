@@ -230,6 +230,7 @@ int main(int argc, char *argv[]) {
     lcca_run(&cpu);
 
     free(mem);
+    tlb_destroy(&(cpu.tlb));
     pthread_cond_destroy(&(cpu.wake));
     pthread_mutex_destroy(&(cpu.intr_mutex));
     pthread_mutex_destroy(&cas_lock);

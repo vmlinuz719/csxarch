@@ -4,21 +4,7 @@
 #include <stdlib.h>
 
 #include "uthash.h"
-
-#define TLB_SIZE 128
-
-#define PGID(x) ((x) & 0x3FF) // 10-bit Page Group Identifiers
-
-struct tlb_entry {
-    uint64_t key;
-    uint64_t value;
-    UT_hash_handle hh;
-};
-
-struct tlb {
-    struct tlb_entry entries[TLB_SIZE];
-    struct tlb_entry *hash;
-};
+#include "tlb.h"
 
 int tlb_set(struct tlb *tlb, int i, uint64_t k) {
     struct tlb_entry *e = &(tlb->entries[i]);
