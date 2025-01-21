@@ -45,6 +45,52 @@ void lcca64_rr_0(lcca_t *cpu, uint32_t inst) {
     }
 }
 
+static inline uint64_t rotl(const uint64_t x, int k) {
+	return (x << k) | (x >> (64 - k));
+}
+
+void lcca64_xmu_7(lcca_t *cpu, uint32_t inst) {
+    uint64_t c = get_reg_q(cpu, RC(inst));
+    uint64_t fn = EX_FN(inst);
+    
+    if (cpu->c_regs[CR_PSQ] & CR_PSQ_PL) {
+        error(cpu, IPLT, inst, 0);
+        return;
+    }
+
+    switch (fn) {
+        case 0: {
+            uint64_t z = (c += UINT64_C(0x9E3779B97F4A7C15));
+            z = (z ^ (z >> 30)) * UINT64_C(0xBF58476D1CE4E5B9);
+            z = (z ^ (z >> 27)) * UINT64_C(0x94D049BB133111EB);
+            z = z ^ (z >> 31);
+            cpu->rng[0] = z;
+            
+            z = (c += UINT64_C(0x9E3779B97F4A7C15));
+            z = (z ^ (z >> 30)) * UINT64_C(0xBF58476D1CE4E5B9);
+            z = (z ^ (z >> 27)) * UINT64_C(0x94D049BB133111EB);
+            z = z ^ (z >> 31);
+            cpu->rng[1] = z;
+        } break;
+        
+        case 1: {
+            const uint64_t s0 = cpu->rng[0];
+            uint64_t s1 = cpu->rng[1];
+            const uint64_t result = rotl(s0 * 5, 7) * 9;
+
+            s1 ^= s0;
+            cpu->rng[0] = rotl(s0, 24) ^ s1 ^ (s1 << 16); // a, b
+            cpu->rng[1] = rotl(s1, 37); // c
+            set_reg_q(cpu, RA(inst), result);
+        } break;
+        
+        default: {
+            error(cpu, EMLT, inst, 0);
+            return;
+        }
+    }
+}
+
 void lcca64_br_1(lcca_t *cpu, uint32_t inst) {
     uint64_t a = get_reg_q(cpu, RA(inst));
     uint64_t d = BR_DISP(inst);

@@ -4,6 +4,13 @@ start:      ldis    a0,data@h
             ldi     p0,10
             call    fibn            ; fibn(10) -> 0x37
             
+            srand   rv
+            
+            rand    a0
+            rand    a1
+            rand    a2
+            rand    a3
+            
             hvc     0,0             ; print PC, PSQ
             hvc     1,0             ; print general registers (rv should = 37)
             

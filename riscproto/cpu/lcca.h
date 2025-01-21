@@ -24,6 +24,7 @@
 #define RB(x)               (((x) >> 5) & 0x1F)
 #define RC(x)               ((x) & 0x1F)
 #define FN(x)               (((x) >> 20) & 0x7)
+#define EX_FN(x)            (((x) >> 10) & 0x1FFF)
 
 #define RR_IMM(x)           (((x) >> 10) & 0x3FF)
 
@@ -84,6 +85,7 @@ typedef struct lcca_t {
     uint64_t regs[32];
     uint64_t c_regs[CR_MAX];
     uint64_t pc;
+    uint64_t rng[2];
 
     uint64_t intr_pending, intr_msg[EIP_EXTERNAL_INTRS];
 
@@ -116,6 +118,7 @@ void lcca64_ls_3(lcca_t *, uint32_t);
 void lcca64_im_4(lcca_t *, uint32_t);
 void lcca64_im_5(lcca_t *, uint32_t);
 void lcca64_im_6(lcca_t *, uint32_t);
+void lcca64_xmu_7(lcca_t *, uint32_t);
 void lcca64_ls_e(lcca_t *, uint32_t);
 
 typedef enum {

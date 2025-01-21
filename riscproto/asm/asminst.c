@@ -57,6 +57,8 @@ uint64_t asm_lgisl(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *
 uint64_t asm_cr(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t asm_tr(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t asm_ret(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
+uint64_t asm_srand(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
+uint64_t asm_rand(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 
 uint64_t define(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t align(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
@@ -107,6 +109,9 @@ static struct instruction_def opcodes[] = {
     {"ldi",     4, 0, 4, asm_im},
     {"ldis",    5, 0, 4, asm_im},
     {"ldgis",   6, 0, 8, asm_lgisl},
+    
+    {"srand",   7, 0, 4, asm_srand},
+    {"rand",    7, 1, 4, asm_rand},
     
     {"svc",     14, 0, 4, asm_ls_c},
     {"mfcr",    14, 3, 4, asm_cr},
@@ -344,6 +349,44 @@ uint64_t asm_mv(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err
 
     result |= (a & 0x1F) << 23;
     result |= (b & 0x1F) << 5;
+    return result;
+}
+
+uint64_t asm_srand(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
+    uint32_t result = (opcode << 28) | (fn << 10);
+
+    char event[MAX_EVENT_LEN];
+    char *args[MAX_ARGS];
+    int got_args = get_args(ic->input, &ic->line, &ic->col, args, MAX_ARGS, event, MAX_EVENT_LEN);
+    if (got_args != 1) {
+        *err = -1;
+        return 0;
+    }
+
+    int c = 0;
+    
+    c = get_register_literal(args[0], err); if (*err) return 0;
+
+    result |= (c & 0x1F);
+    return result;
+}
+
+uint64_t asm_rand(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
+    uint32_t result = (opcode << 28) | (fn << 10);
+
+    char event[MAX_EVENT_LEN];
+    char *args[MAX_ARGS];
+    int got_args = get_args(ic->input, &ic->line, &ic->col, args, MAX_ARGS, event, MAX_EVENT_LEN);
+    if (got_args != 1) {
+        *err = -1;
+        return 0;
+    }
+
+    int a = 0;
+    
+    a = get_register_literal(args[0], err); if (*err) return 0;
+
+    result |= (a & 0x1F) << 23;
     return result;
 }
 
