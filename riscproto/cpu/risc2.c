@@ -84,6 +84,17 @@ void lcca64_xmu_7(lcca_t *cpu, uint32_t inst) {
             set_reg_q(cpu, RA(inst), result);
         } break;
         
+        case 2: {
+            lcca_error_t e = 0;
+            uint64_t b = get_reg_q(cpu, RB(inst));
+            uint64_t addr = translate(cpu, b + c, CHAR, READ, &e);
+            if (e) {
+                error(cpu, e, inst, addr);
+                return;
+            }
+            set_reg_q(cpu, RA(inst), addr);
+        } break;
+
         default: {
             error(cpu, EMLT, inst, 0);
             return;
@@ -146,7 +157,7 @@ uint64_t translate(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_access_t a
 
     if (addr & ((1 << size) - 1)) {
         *e = access_type == FETCH ? XALT : DALT;
-        return 0;
+        return addr;
     }
 
     uint64_t object = addr >> 60;
@@ -162,7 +173,7 @@ uint64_t translate(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_access_t a
             case WRITE: *e = WSGV; break;
             case FETCH: *e = XSGV; break;
         }
-        return 0;
+        return addr;
     }
 
     rights &= (cpu->c_regs[CR_PSQ] & CR_PSQ_PL)
@@ -175,7 +186,7 @@ uint64_t translate(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_access_t a
             case WRITE: *e = WSGV; break;
             case FETCH: *e = XSGV; break;
         }
-        return 0;
+        return addr;
     }
 
     if (access_type == WRITE) {

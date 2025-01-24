@@ -128,7 +128,7 @@ void *lcca_run(lcca_t *cpu) {
     lcca_bus_t *bus = cpu->bus;
     lcca_error_t fetch_error;
 
-    uint64_t now_pending;
+    uint64_t now_pending = 0;
 
     while(cpu->running) {
         if ((cpu->c_regs[CR_PSQ] & CR_PSQ_EI) && (now_pending = cpu->intr_pending & cpu->c_regs[CR_EIM])) {
