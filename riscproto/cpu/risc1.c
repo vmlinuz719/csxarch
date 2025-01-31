@@ -100,7 +100,11 @@ void error(lcca_t *cpu, lcca_error_t e, uint64_t fi, uint64_t fa) {
         case BERR:
         case RSGV:
         case WSGV:
-        case DALT: {
+        case DALT: 
+        case PGNP:
+        case PGNM:
+        case PGNW:
+        case NXMU: {
             intr_internal(cpu, e, fi, fa);
         } break;
 
@@ -145,7 +149,7 @@ void *lcca_run(lcca_t *cpu) {
 
         if (!(cpu->c_regs[CR_PSQ] & CR_PSQ_WS)) {
             fetch_error = 0;
-            uint32_t inst;
+            uint32_t inst = 0;
             uint64_t addr = translate(cpu, cpu->pc, LONG, FETCH, &fetch_error);
             if (!fetch_error) {
                 inst = fetch_u4b(bus, addr, &fetch_error);

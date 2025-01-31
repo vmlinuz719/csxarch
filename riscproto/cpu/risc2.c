@@ -194,7 +194,15 @@ uint64_t translate(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_access_t a
     }
 
     // fprintf(stderr, "A %lX\n", base + offset);
-    return base + offset;
+    if (!(rights & CR_OD_P)) {
+        return base + offset;
+    }
+
+    else {
+        // TODO: TLB lookup
+        *e = NXMU;
+        return addr;
+    }
 }
 
 void lcca64_ls_2(lcca_t *cpu, uint32_t inst) {

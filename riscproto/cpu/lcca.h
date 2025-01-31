@@ -46,6 +46,7 @@
 #define CR_PSQ_OC           (1 << 4)
 #define CR_PSQ_AE           (1 << 5)
 #define CR_PSQ_PGID         (0x3FF << 6)
+#define GET_PGID(x)         (((x) >> 6) & 0x3FF)
 #define CR_PSQ_INTR_ENTRY_MASK 0xFFFFFFFFFFFFFFE0
 
 #define CR_APC              1
@@ -60,6 +61,7 @@
 #define CR_FA               8
 #define CR_OB0              16
 #define CR_OD0              32
+#define CR_OD_P             (1)
 #define CR_OD_E             (1 << 1)
 #define CR_OD_D             (1 << 2)
 #define CR_OD_C             (1 << 3)

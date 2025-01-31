@@ -21,6 +21,11 @@ typedef enum {
     OVRF,      // Arithmetic Overflow Trap
     DIVZ,      // Divide By Zero Trap
 
+    PGNM,      // Page Not Mapped
+    PGNP,      // Page Not Present
+    PGNW,      // Page Not Writable
+    NXMU,      // XMU Not Present
+
     TIME = 32, // Timer
     SVCT = 48  // Supervisor Call Trap
 } lcca_error_t;

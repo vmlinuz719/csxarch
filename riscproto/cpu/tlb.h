@@ -7,6 +7,11 @@
 #define TLB_SIZE 128
 
 #define PGID(x) ((x) & 0x3FF) // 10-bit Page Group Identifiers
+#define PTAG(x) ((x) & 0xFFFFFFFFFFFFFC00) // 54-bit Page Tag
+
+#define PFLAG_P(x) ((x) & 1)
+#define PFLAG_W(x) ((x) & 2)
+#define PFLAG_NC(x) ((x) & 4)
 
 struct tlb_entry {
     uint64_t key;
