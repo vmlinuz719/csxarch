@@ -50,8 +50,8 @@ lodata:
 base0:      dq      0x0                 ; storage area
 desc0:      dq      0x0FFFFFFFFFFFFF00  ; XW, max size
 
-            align   0x1000
-            origin  0x1000000000011000
+            align   0x100
+            origin  0x1000000000010100
 
 histart:    ldgis   a0,hidata@gh
             ldca    ct,a0,hidata@gl
