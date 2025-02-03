@@ -1,21 +1,24 @@
-start:      ldis    a0,data@h
-            or      ct,a0,0,data@l
+lostart:    ldis    a0,lodata@h
+            or      ct,a0,0,lodata@l
 
-            ldi     p0,10
+            ldi     p0,42
             call    fibn            ; fibn(10) -> 0x37
             
             srand   rv
             
-            rand    a0
-            rand    a1
-            rand    a2
-            rand    a3
+            ldq     a0,ct,base0@lodata
+            ldq     a1,ct,desc0@lodata
+            mtcr    a0,b0
+            mtcr    a1,d0
+            mtcr    a0,b1
+            mtcr    a1,d1
             
-            hvc     0,0             ; print PC, PSQ
-            hvc     1,0             ; print general registers (rv should = 37)
+            mfcr    a0,psq
+            ldi     a1,64
+            mtcr    a0,a1,psq
             
-            ldi     a0,4
-            mtcr    a0,psq
+            ldgis   lr,histart@gh
+            jmp     lr,histart@gl
             
         ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         ;
@@ -42,4 +45,33 @@ fibn_exit:  ret
 
             align   0x10
 
-data:
+lodata:
+
+base0:      dq      0x0                 ; storage area
+desc0:      dq      0x0FFFFFFFFFFFFF00  ; XW, max size
+
+            align   0x1000
+            origin  0x1000000000011000
+
+histart:    ldgis   a0,hidata@gh
+            ldca    ct,a0,hidata@gl
+            
+            ldq     a0,ct,base1@hidata
+            ldq     a1,ct,desc1@hidata
+            mtcr    a0,b0
+            mtcr    a1,d0
+
+            hvc     0,0             ; print PC, PSQ
+            hvc     1,0             ; print general registers (rv should = 37)
+            hvc     2,0             ; print control registers
+            hvc     3,0             ; print object descriptors
+            
+            ldi     a0,4
+            mtcr    a0,psq
+            
+            align   0x10
+
+hidata:
+
+base1:      dq      0xFFFF000000000000  ; I/O area
+desc1:      dq      0x0000FFFFFFFFFD08  ; WC, I/O size

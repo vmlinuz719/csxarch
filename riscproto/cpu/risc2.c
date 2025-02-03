@@ -164,7 +164,7 @@ uint64_t translate(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_access_t a
     uint64_t base = cpu->c_regs[CR_OB0 + object] & 0xFFFFFFFFFFFFFC00;
 
     uint64_t limit = cpu->c_regs[CR_OD0 + object] & 0x0FFFFFFFFFFFFC00;
-    uint64_t rights = cpu->c_regs[CR_OD0 + object] & 0x3FF;
+    uint64_t rights = (cpu->c_regs[CR_OD0 + object] & 0x3FF) | (1 << 10);
 
     uint64_t offset = addr & 0x0FFFFFFFFFFFFFFF;
     if (offset >> 10 > limit >> 10) {
