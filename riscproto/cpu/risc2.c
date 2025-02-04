@@ -176,9 +176,10 @@ uint64_t translate(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_access_t a
         return addr;
     }
 
-    rights &= (cpu->c_regs[CR_PSQ] & CR_PSQ_PL)
+    rights &= ((cpu->c_regs[CR_PSQ] & CR_PSQ_PL)
         ? (CR_OD_R | CR_OD_x | CR_OD_w)
-        : (CR_OD_X | CR_OD_W | (1 << 10));
+        : (CR_OD_X | CR_OD_W | (1 << 10)))
+        | 31;
 
     if (!(rights & access_type)) {
         switch (access_type) {
