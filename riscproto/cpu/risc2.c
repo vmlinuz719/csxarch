@@ -302,7 +302,7 @@ void lcca64_ls_a(lcca_t *cpu, uint32_t inst) {
     uint64_t d = LSS_DISP(inst);
     d = EXT12(d);
     uint64_t s = LSS_SEL(inst);
-    if (cpu->c_regs[CR_PSQ] & CR_PSQ_PL) {
+    if (!(cpu->c_regs[CR_PSQ] & CR_PSQ_PL)) {
         s += 4;
     }
 
@@ -587,7 +587,7 @@ void lcca64_ls_b(lcca_t *cpu, uint32_t inst) {
     uint64_t d = LSS_DISP(inst);
     d = EXT12(d);
     uint64_t s = LSS_SEL(inst);
-    if (cpu->c_regs[CR_PSQ] & CR_PSQ_PL) {
+    if (!(cpu->c_regs[CR_PSQ] & CR_PSQ_PL)) {
         s += 4;
     }
 
