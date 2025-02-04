@@ -50,6 +50,8 @@ lodata:
 base0:      dq      0x0                 ; storage area
 desc0:      dq      0x0FFFFFFFFFFFFF00  ; XW, max size
 
+funny:      asciz   "Can you read this???"
+
             align   0x100
             origin  0x1000000000010100
 

@@ -55,6 +55,7 @@ int get_token(FILE *f, int *line, int *col, char *result, int maxlen) {
                 fseek(f, -1, SEEK_CUR);
             }
             result[i] = '\0';
+            printf("Debug: %s\n", result);
             return i;
         } else if (quoted && ch == '\n') {
             *col = 0;
@@ -68,6 +69,7 @@ int get_token(FILE *f, int *line, int *col, char *result, int maxlen) {
 
     if (i != 0 && i < maxlen - 1) {
         result[i] = '\0';
+        printf("Debug: %s\n", result);
         return i;
     }
     

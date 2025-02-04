@@ -62,6 +62,8 @@ uint64_t asm_rand(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *e
 
 uint64_t define(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t align(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
+uint64_t asciz(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
+uint64_t ascii(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t origin(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t data(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 
@@ -122,6 +124,8 @@ static struct instruction_def opcodes[] = {
 
     {"define",  0,0,0, define},
     {"align",   0,0,0, align},
+    {"asciz",   0,0,0, asciz},
+    {"ascii",   0,0,0, ascii},
     {"origin",  0,0,0, origin},
 
     {"dc",   8,0,1, data},
@@ -251,10 +255,74 @@ uint64_t align(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err)
         uint64_t new_pc = (*pc + d) & (~(d - 1));
         if (ic->output != NULL) {
             for (uint64_t i = 0; i < (new_pc - *pc); i++) {
+                // TODO: escape sequences with deduplicated handling
                 emit(ic, 0, 1);
             }
         }
         *pc = new_pc;
+    }
+
+    return 0;
+}
+
+uint64_t asciz(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
+    uint32_t result = (opcode << 28) | (fn << 20);
+
+    char event[MAX_EVENT_LEN];
+    char *args[MAX_ARGS];
+    int got_args = get_args(ic->input, &ic->line, &ic->col, args, MAX_ARGS, event, MAX_EVENT_LEN);
+    if (got_args != 1) {
+        *err = -1;
+        return 0;
+    }
+
+    if (args[0][0] != '"') {
+        *err = -1;
+        return 0;
+    }
+
+    int len = strlen(args[0]);
+    if (len <= 2) return 0;
+
+    args[0][len - 1] = '\0';
+    len -= 2;
+
+    char *str = (args[0]) + 1;
+
+    for (int i = 0; i <= len; i++) {
+        // TODO: escape sequences with deduplicated handling
+        emit(ic, str[i], 1);
+    }
+
+    return 0;
+}
+
+uint64_t ascii(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
+    uint32_t result = (opcode << 28) | (fn << 20);
+
+    char event[MAX_EVENT_LEN];
+    char *args[MAX_ARGS];
+    int got_args = get_args(ic->input, &ic->line, &ic->col, args, MAX_ARGS, event, MAX_EVENT_LEN);
+    if (got_args != 1) {
+        *err = -1;
+        return 0;
+    }
+
+    if (args[0][0] != '"') {
+        *err = -1;
+        return 0;
+    }
+
+    int len = strlen(args[0]);
+    if (len <= 2) return 0;
+
+    args[0][len - 1] = '\0';
+    len -= 2;
+
+    char *str = (args[0]) + 1;
+
+    for (int i = 0; i < len; i++) {
+        emit(ic, str[i], 1);
     }
 
     return 0;
