@@ -172,7 +172,11 @@ void *lcca_run(lcca_t *cpu) {
         } else {
             pthread_mutex_lock(&(cpu->intr_mutex));
             if (!(cpu->c_regs[CR_PSQ] & CR_PSQ_EI)) {
-                fprintf(stderr, "CPU disabled, press Ctrl-C to exit emulator\n");
+                fprintf(stderr, "\nCPU disabled, press Ctrl-C to exit emulator at:\n");
+                // TODO: Deduplicate PSQ printing
+                fprintf(stderr, " PC: %16lX PSQ: %016lX (%03lX", cpu->pc, cpu->c_regs[CR_PSQ], (cpu->c_regs[CR_PSQ] & CR_PSQ_PGID) >> 6);
+                print_bits(cpu->c_regs[CR_PSQ], psq_bits);
+                fprintf(stderr, ")\n");
             }
             pthread_cond_wait(
                 &(cpu->wake),

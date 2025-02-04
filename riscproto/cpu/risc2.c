@@ -351,7 +351,7 @@ static inline void print_regs(uint64_t *regs, const char *names[]) {
 const char *psq_bits = "AOLWPI";
 const char *d_bits = "XWRxwBCDEP";
 
-static inline void print_bits(uint64_t n, const char *bits) {
+void print_bits(uint64_t n, const char *bits) {
     int len = strlen(bits);
     for (int i = len; i > 0;  i--) {
         int shamt = i - 1;
@@ -381,10 +381,17 @@ void simdbg_0(lcca_t *cpu, uint32_t inst) {
         } break;
 
         case 3: {
+            int printed = 0;
             for (int i = 0; i < 16; i++) {
-                fprintf(stderr, "Object %01X: %16lX (", i, cpu->c_regs[CR_OB0 + i]);
-                print_bits(cpu->c_regs[CR_OD0 + i], d_bits);
-                fprintf(stderr, ") + %15lX\n", cpu->c_regs[CR_OD0 + i] & 0x0FFFFFFFFFFFFC00);
+                if (cpu->c_regs[CR_OB0 + i] || cpu->c_regs[CR_OD0 + i]) {
+                    printed = 1;
+                    fprintf(stderr, "Object %01X: %16lX (", i, cpu->c_regs[CR_OB0 + i]);
+                    print_bits(cpu->c_regs[CR_OD0 + i], d_bits);
+                    fprintf(stderr, ") + %15lX\n", cpu->c_regs[CR_OD0 + i] & 0x0FFFFFFFFFFFFC00);
+                }
+            }
+            if (!printed) {
+                fprintf(stderr, "No objects in use\n");
             }
         } break;
         

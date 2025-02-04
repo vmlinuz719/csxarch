@@ -98,6 +98,9 @@ typedef struct lcca_t {
     int running;
 } lcca_t;
 
+extern const char *psq_bits;
+void print_bits(uint64_t n, const char *bits);
+
 uint64_t get_reg_q(lcca_t *, int);
 void set_reg_q(lcca_t *, int, uint64_t);
 
