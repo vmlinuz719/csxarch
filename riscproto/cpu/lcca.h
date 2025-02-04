@@ -34,6 +34,9 @@
 
 #define LS_DISP(x)          (((x) >> 5) & 0x7FFF)
 
+#define LSS_DISP(x)         (((x) >> 5) & 0xFFF)
+#define LSS_SEL(x)          (((x) >> 17) & 0x7)
+
 #define LGISL2_IMM(x)       (((x) & 0x7FFFFF) | (((x) & 0xF0000000) >> 5))
 
 #define CR_MAX              48
@@ -124,6 +127,8 @@ void lcca64_im_4(lcca_t *, uint32_t);
 void lcca64_im_5(lcca_t *, uint32_t);
 void lcca64_im_6(lcca_t *, uint32_t);
 void lcca64_xmu_7(lcca_t *, uint32_t);
+void lcca64_ls_a(lcca_t *, uint32_t);
+void lcca64_ls_b(lcca_t *, uint32_t);
 void lcca64_ls_e(lcca_t *, uint32_t);
 
 typedef enum {

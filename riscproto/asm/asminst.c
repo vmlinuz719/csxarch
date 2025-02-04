@@ -294,6 +294,8 @@ uint64_t asciz(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err)
         emit(ic, str[i], 1);
     }
 
+    *pc += len + 1;
+
     return 0;
 }
 
@@ -324,6 +326,8 @@ uint64_t ascii(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err)
     for (int i = 0; i < len; i++) {
         emit(ic, str[i], 1);
     }
+
+    *pc += len;
 
     return 0;
 }

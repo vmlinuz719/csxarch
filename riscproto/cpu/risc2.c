@@ -292,6 +292,99 @@ void lcca64_ls_2(lcca_t *cpu, uint32_t inst) {
     }
 }
 
+uint64_t selector(uint64_t seg, uint64_t base, uint64_t disp, uint64_t size) {
+    uint64_t va = ((disp << size) + base) & 0x0FFFFFFFFFFFFFFF;
+    return va | (seg << 60);
+}
+
+void lcca64_ls_a(lcca_t *cpu, uint32_t inst) {
+    uint64_t c = get_reg_q(cpu, RC(inst));
+    uint64_t d = LSS_DISP(inst);
+    d = EXT12(d);
+    uint64_t s = LSS_SEL(inst);
+    if (cpu->c_regs[CR_PSQ] & CR_PSQ_PL) {
+        s += 4;
+    }
+
+    lcca_error_t e = 0;
+    uint64_t result;
+    int writeback = 1;
+
+    uint64_t addr;
+
+    switch (FN(inst)) {
+        case 0: {
+            addr = translate(cpu, selector(s, c, d, 0), CHAR, READ, &e);
+            if (!e) {
+                result = read_u1b(cpu->bus, addr, &e);
+                result = EXT8(result);
+            }
+        } break;
+
+        case 1: {
+            addr = translate(cpu, selector(s, c, d, 0), CHAR, READ, &e);
+            if (!e) {
+                result = read_u1b(cpu->bus, addr, &e);
+            }
+        } break;
+
+        case 2: {
+            addr = translate(cpu, selector(s, c, d, 1), WORD, READ, &e);
+            if (!e) {
+                result = read_u2b(cpu->bus, addr, &e);
+                result = EXT16(result);
+            }
+        } break;
+
+        case 3: {
+            addr = translate(cpu, selector(s, c, d, 1), WORD, READ, &e);
+            if (!e) {
+                result = read_u2b(cpu->bus, addr, &e);
+            }
+        } break;
+
+        case 4: {
+            addr = translate(cpu, selector(s, c, d, 2), LONG, READ, &e);
+            if (!e) {
+                result = read_u4b(cpu->bus, addr, &e);
+                result = EXT32(result);
+            }
+        } break;
+
+        case 5: {
+            writeback = 0;
+            addr = translate(cpu, selector(s, c, d, 0), CHAR, WRITE, &e);
+            if (!e) {
+                write_1b(cpu->bus, addr, get_reg_q(cpu, RA(inst)), &e);
+            }
+        } break;
+
+        case 6: {
+            writeback = 0;
+            addr = translate(cpu, selector(s, c, d, 1), WORD, WRITE, &e);
+            if (!e) {
+                write_2b(cpu->bus, addr, get_reg_q(cpu, RA(inst)), &e);
+            }
+        } break;
+
+        case 7: {
+            writeback = 0;
+            addr = translate(cpu, selector(s, c, d, 2), LONG, WRITE, &e);
+            if (!e) {
+                write_4b(cpu->bus, addr, get_reg_q(cpu, RA(inst)), &e);
+            }
+        } break;
+    }
+
+    if (e) {
+        error(cpu, e, inst, addr);
+    }
+
+    else if (writeback) {
+        set_reg_q(cpu, RA(inst), result);
+    }
+}
+
 void lcca64_im_4(lcca_t *cpu, uint32_t inst) {
     uint64_t d = IM_IMM(inst);
     d = EXT23(d);
@@ -472,6 +565,59 @@ void lcca64_ls_3(lcca_t *cpu, uint32_t inst) {
             uint64_t e = (d >> 6) & 0x3FF;
             uint64_t mask = shl(sar(1L << 63, 63 - (d & 0x3F)), 1);
             result = sar(c, e) & (~(mask));
+        } break;
+
+        default: {
+            error(cpu, EMLT, inst, 0);
+            return;
+        }
+    }
+
+    if (e) {
+        error(cpu, e, inst, addr);
+    }
+
+    else if (writeback) {
+        set_reg_q(cpu, RA(inst), result);
+    }
+}
+
+void lcca64_ls_b(lcca_t *cpu, uint32_t inst) {
+    uint64_t c = get_reg_q(cpu, RC(inst));
+    uint64_t d = LSS_DISP(inst);
+    d = EXT12(d);
+    uint64_t s = LSS_SEL(inst);
+    if (cpu->c_regs[CR_PSQ] & CR_PSQ_PL) {
+        s += 4;
+    }
+
+    lcca_error_t e = 0;
+    uint64_t result;
+    int writeback = 1;
+
+    uint64_t addr;
+
+    switch (FN(inst)) {
+        case 0: {
+            addr = translate(cpu, selector(s, c, d, 2), LONG, READ, &e);
+            if (!e) {
+                result = read_u4b(cpu->bus, addr, &e);
+            }
+        } break;
+
+        case 1: {
+            addr = translate(cpu, selector(s, c, d, 3), QUAD, READ, &e);
+            if (!e) {
+                result = read_8b(cpu->bus, addr, &e);
+            }
+        } break;
+
+        case 3: {
+            writeback = 0;
+            addr = translate(cpu, selector(s, c, d, 3), QUAD, WRITE, &e);
+            if (!e) {
+                write_8b(cpu->bus, addr, get_reg_q(cpu, RA(inst)), &e);
+            }
         } break;
 
         default: {
