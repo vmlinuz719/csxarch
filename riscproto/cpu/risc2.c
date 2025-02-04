@@ -612,6 +612,10 @@ void lcca64_ls_b(lcca_t *cpu, uint32_t inst) {
             }
         } break;
 
+        case 2: {
+            result = selector(s, c, d, 0);
+        } break;
+
         case 3: {
             writeback = 0;
             addr = translate(cpu, selector(s, c, d, 3), QUAD, WRITE, &e);
