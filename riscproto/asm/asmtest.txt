@@ -63,10 +63,8 @@ histart:    ldgis   a0,hidata@gh
             mtcr    a0,b0
             mtcr    a1,d0
 
-            hvc     0,0             ; print PC, PSQ
-            hvc     1,0             ; print general registers (rv should = 37)
-            hvc     2,0             ; print control registers
-            hvc     3,0             ; print object descriptors
+            ldca    a3,ct,message@hidata
+            hvc     6,a3
             
             ldi     a0,4
             mtcr    a0,psq
@@ -77,3 +75,4 @@ hidata:
 
 base1:      dq      0xFFFF000000000000  ; I/O area
 desc1:      dq      0x0000FFFFFFFFFD08  ; WC, I/O size
+message:    asciz   "Debug: Successful test program IPL"

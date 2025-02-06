@@ -50,6 +50,10 @@ uint64_t asm_ls_c(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *e
 uint64_t asm_ls_w(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t asm_ls_l(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t asm_ls_q(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
+uint64_t asm_lss_c(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
+uint64_t asm_lss_w(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
+uint64_t asm_lss_l(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
+uint64_t asm_lss_q(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t asm_ls_rex(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t asm_bifn(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t asm_im(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
@@ -115,6 +119,20 @@ static struct instruction_def opcodes[] = {
     {"srand",   7, 0, 4, asm_srand},
     {"rand",    7, 1, 4, asm_rand},
     
+    {"ldcs",     10, 0, 4, asm_lss_c},
+    {"ldczs",    10, 1, 4, asm_lss_c},
+    {"ldws",     10, 2, 4, asm_lss_w},
+    {"ldwzs",    10, 3, 4, asm_lss_w},
+    {"lds",      10, 4, 4, asm_lss_l},
+    {"stcs",     10, 5, 4, asm_lss_c},
+    {"stws",     10, 6, 4, asm_lss_w},
+    {"sts",      10, 7, 4, asm_lss_l},
+    
+    {"ldzs",     11, 0, 4, asm_lss_l},
+    {"ldqs",     11, 1, 4, asm_lss_q},
+    {"ldcas",    11, 2, 4, asm_lss_c},
+    {"stqs",     11, 3, 4, asm_lss_q},
+
     {"svc",     14, 0, 4, asm_ls_c},
     {"mfcr",    14, 3, 4, asm_cr},
     {"mtcr",    14, 4, 4, asm_cr},
@@ -641,6 +659,34 @@ uint64_t asm_ls(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err
     return result;
 }
 
+uint64_t asm_lss(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err, int shamt) {
+    uint32_t result = (opcode << 28) | (fn << 20);
+
+    char event[MAX_EVENT_LEN];
+    char *args[MAX_ARGS];
+    int got_args = get_args(ic->input, &ic->line, &ic->col, args, MAX_ARGS, event, MAX_EVENT_LEN);
+    if (got_args != 3 && got_args != 4) {
+        *err = -1;
+        return 0;
+    }
+
+    int a = 0, s = 0, c = 0, d = 0;
+
+    a = get_register_literal(args[0], err); if (*err) return 0;
+    s = get_register_literal(args[1], err); if (*err) return 0;
+    c = get_register_literal(args[2], err); if (*err) return 0;
+    
+    if (got_args == 4) {
+        d = label_or_num(ic, *pc, args[3], 0xFFF, NULL, err); if (*err) return 0;
+    }
+
+    result |= (a & 0x1F) << 23;
+    result |= (s & 0x7) << 17;
+    result |= ((d >> shamt) & 0xFFF) << 5;
+    result |= (c & 0x1F);
+    return result;
+}
+
 uint64_t asm_ls_rex(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
     uint32_t result = (opcode << 28) | (fn << 20);
 
@@ -710,6 +756,22 @@ uint64_t asm_ls_l(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *e
 
 uint64_t asm_ls_q(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
     return asm_ls(ic, pc, opcode, fn, err, 3);
+}
+
+uint64_t asm_lss_c(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
+    return asm_lss(ic, pc, opcode, fn, err, 0);
+}
+
+uint64_t asm_lss_w(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
+    return asm_lss(ic, pc, opcode, fn, err, 1);
+}
+
+uint64_t asm_lss_l(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
+    return asm_lss(ic, pc, opcode, fn, err, 2);
+}
+
+uint64_t asm_lss_q(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
+    return asm_lss(ic, pc, opcode, fn, err, 3);
 }
 
 uint64_t asm_bifn(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {

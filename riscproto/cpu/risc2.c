@@ -495,6 +495,35 @@ void simdbg_0(lcca_t *cpu, uint32_t inst) {
             fprintf(stderr, "%2d: %lX\n", RC(inst), c);
         } break;
 
+        case 5:
+        case 6: {
+            uint64_t va = c;
+            char ch = 0;
+            lcca_error_t e = 0;
+            uint64_t addr = 0;
+            while (1) {
+                addr = translate(cpu, va++, CHAR, READ, &e);
+                if (e) {
+                    error(cpu, e, inst, addr);
+                    break;
+                }
+
+                ch = read_u1b(cpu->bus, addr, &e);
+                if (e || !ch) {
+                    if (e) {
+                        error(cpu, e, inst, addr);
+                    }
+                    break;
+                }
+
+                putc(ch, stderr);
+            }
+
+            if (!e && a == 6) {
+                putc('\n', stderr);
+            }
+        } break;
+
         case 31: {
             int rc = (int) c;
             exit(rc);
