@@ -1,78 +1,65 @@
-lostart:    ldis    a0,lodata@h
-            or      ct,a0,0,lodata@l
+            origin  0x10000
 
-            ldi     p0,42
-            call    fibn            ; fibn(10) -> 0x37
+ltext:
+
+ipl:        ldis    a0,ltext@h          ; establish addressability
+            or      ct,a0,0,ltext@l
             
-            srand   rv
-            
-            ldq     a0,ct,base0@lodata
-            ldq     a1,ct,desc0@lodata
+            ldq     a0,ct,base0@ltext   ; load identity-mapped segment
+            ldq     a1,ct,desc0@ltext
             mtcr    a0,b0
             mtcr    a1,d0
-            mtcr    a0,b1
-            mtcr    a1,d1
             
-            mfcr    a0,psq
+            ldq     a2,ct,base8@ltext   ; load supervisor segments
+            ldq     a3,ct,desc8@ltext
+            mtcr    a2,b8
+            mtcr    a3,d8
+            ldq     a0,ct,base9@ltext
+            ldq     a1,ct,desc9@ltext
+            ldq     a2,ct,basea@ltext
+            ldq     a3,ct,desca@ltext
+            mtcr    a0,b9
+            mtcr    a1,d9
+            mtcr    a2,b10
+            mtcr    a3,d10
+            
+            mfcr    a0,psq              ; enable address translation
             ldi     a1,64
             mtcr    a0,a1,psq
             
-            ldgis   lr,histart@gh
-            jmp     lr,histart@gl
+            ldcas   lr,4,0,start        ; enter program
+            ret
             
-        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        ;
-        ;   fibn - nth fibonacci number
-        ;       p0:     i64
-        ;       rv:     i64
-        ;
-
-fibn:       xor     rv,rv           ; a
-
-            bez     p0,fibn_exit
-            
-            ldi     a1,1            ; b
-            xor     a2,a2           ; i
-            
-fibn_l0:    add     a3,rv,a1
-            inc     a2
-            mov     rv,a1
-            sub     a0,p0,a2
-            mov     a1,a3
-            bnz     a0,fibn_l0
-
-fibn_exit:  ret
-
             align   0x10
-
-lodata:
-
+            
 base0:      dq      0x0                 ; storage area
 desc0:      dq      0x0FFFFFFFFFFFFF00  ; XW, max size
 
-funny:      asciz   "Can you read this???"
+base8:      dq      text                ; program segment
+desc8:      dq      0xFE00              ; X, 64K
 
-            align   0x100
-            origin  0x1000000000010100
+base9:      dq      0x1000              ; stack segment
+desc9:      dq      0x1D00              ; W, 8K
 
-histart:    ldgis   a0,hidata@gh
-            ldca    ct,a0,hidata@gl
+basea:      dq      0xFFFF000000000000  ; I/O area
+desca:      dq      0x0000FFFFFFFFFD08  ; WC, I/O size
+
+            align   0x400
             
-            ldq     a0,ct,base1@hidata
-            ldq     a1,ct,desc1@hidata
-            mtcr    a0,b0
-            mtcr    a1,d0
+text:       origin  0x0
 
-            ldca    a3,ct,message@hidata
+start:      mtcr    0,b0
+            mtcr    0,d0
+
+            ldcas   ct,4,0,start
+            mov     sp,0
+            
+            ldca    a3,ct,message@start
             hvc     6,a3
+            
+            hvc     3,0
             
             ldi     a0,4
             mtcr    a0,psq
-            
-            align   0x10
 
-hidata:
-
-base1:      dq      0xFFFF000000000000  ; I/O area
-desc1:      dq      0x0000FFFFFFFFFD08  ; WC, I/O size
 message:    asciz   "Debug: Successful test program IPL"
