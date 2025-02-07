@@ -57,6 +57,8 @@ start:      mtcr    0,b0
             ldca    a3,ct,message@start
             hvc     6,a3
             
+            ldca    p0,ct,message@start
+            call    strlen
             hvc     4,rv
             
             hvc     3,0

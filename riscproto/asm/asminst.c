@@ -836,7 +836,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    if (err) {
+    if (err == -1) {
         close_input(in);
         exit(EXIT_FAILURE);
     }
