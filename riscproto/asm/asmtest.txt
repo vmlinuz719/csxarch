@@ -57,9 +57,25 @@ start:      mtcr    0,b0
             ldca    a3,ct,message@start
             hvc     6,a3
             
+            hvc     4,rv
+            
             hvc     3,0
             
             ldi     a0,4
             mtcr    a0,psq
+
+strlen:     xor     rv,rv,rv
+            bez     p0,strlen_end
+            
+            mov     a0,p0
+            
+strlen_l0:  ldc     a1,a0
+            bez     a1,strlen_b0
+            inc     a0
+            br      strlen_l0
+
+strlen_b0:  sub     rv,a0,p0
+
+strlen_end: ret
 
 message:    asciz   "Debug: Successful test program IPL"
