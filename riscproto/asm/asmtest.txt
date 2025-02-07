@@ -27,8 +27,9 @@ ipl:        ldis    a0,ltext@h          ; establish addressability
             ldi     a1,64
             mtcr    a0,a1,psq
             
-            ldcas   lr,4,0,start        ; enter program
-            ret
+            ldcas   ct,4,0              ; set up and enter program
+            mov     sp,0
+            jmp     ct,start
             
             align   0x10
             
@@ -48,20 +49,12 @@ desca:      dq      0x0000FFFFFFFFFD08  ; WC, I/O size
             
 text:       origin  0x0
 
-start:      mtcr    0,b0
-            mtcr    0,d0
-
-            ldcas   ct,4,0,start
-            mov     sp,0
-            
-            ldca    a3,ct,message@start
+start:      ldca    a3,ct,message@start
             hvc     6,a3
             
             ldca    p0,ct,message@start
             call    strlen
             hvc     4,rv
-            
-            hvc     3,0
             
             ldi     a0,4
             mtcr    a0,psq

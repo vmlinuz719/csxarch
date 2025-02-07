@@ -548,11 +548,10 @@ uint64_t asm_br_j(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *e
     int i = 0;
 
     if (got_args == 2) {
-        a = get_register_literal(args[i++], err);
-        if (*err) return 0;
+        d = label_or_num(ic, *pc, args[1], 0x3FFFFF, NULL, err); if (*err) return 0;
     }
 
-    d = label_or_num(ic, *pc, args[i], 0x3FFFFF, NULL, err); if (*err) return 0;
+    a = get_register_literal(args[0], err); if (*err) return 0;
 
     result |= (a & 0x1F) << 23;
     result |= (d >> 2) & 0xFFFFF;
