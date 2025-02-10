@@ -116,7 +116,8 @@ static struct instruction_def opcodes[] = {
     {"ldis",    5, 0, 4, asm_im},
     {"ldgis",   6, 0, 8, asm_lgisl},
 
-    {"ldat",    7, 2, 4, asm_ls_c},
+    {"ldlin",   7, 0, 4, asm_ls_c},
+    {"ldat",    7, 1, 4, asm_ls_c},
     
     {"ldcs",     10, 0, 4, asm_lss_c},
     {"ldczs",    10, 1, 4, asm_lss_c},

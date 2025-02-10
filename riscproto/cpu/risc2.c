@@ -61,7 +61,17 @@ void lcca64_xmu_7(lcca_t *cpu, uint32_t inst) {
     uint64_t fn = FN(inst);
 
     switch (fn) {
-        case 2: {
+        case 0: {
+            lcca_error_t e = 0;
+            uint64_t addr = translate_linear(cpu, c + d, CHAR, READ, &e, 0);
+            if (e) {
+                error(cpu, e, inst, addr);
+                return;
+            }
+            set_reg_q(cpu, RA(inst), addr);
+        } break;
+
+        case 1: {
             lcca_error_t e = 0;
             uint64_t addr = translate(cpu, c + d, CHAR, READ, &e);
             if (e) {
