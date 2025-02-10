@@ -50,13 +50,15 @@ static inline uint64_t rotl(const uint64_t x, int k) {
 }
 
 void lcca64_xmu_7(lcca_t *cpu, uint32_t inst) {
-    uint64_t c = get_reg_q(cpu, RC(inst));
-    uint64_t fn = EX_FN(inst);
-    
     if (cpu->c_regs[CR_PSQ] & CR_PSQ_PL) {
         error(cpu, IPLT, inst, 0);
         return;
     }
+
+    uint64_t c = get_reg_q(cpu, RC(inst));
+    uint64_t d = LS_DISP(inst);
+    d = EXT15(d);
+    uint64_t fn = FN(inst);
 
     switch (fn) {
         case 0: {
@@ -86,8 +88,7 @@ void lcca64_xmu_7(lcca_t *cpu, uint32_t inst) {
         
         case 2: {
             lcca_error_t e = 0;
-            uint64_t b = get_reg_q(cpu, RB(inst));
-            uint64_t addr = translate(cpu, b + c, CHAR, READ, &e);
+            uint64_t addr = translate(cpu, c + d, CHAR, READ, &e);
             if (e) {
                 error(cpu, e, inst, addr);
                 return;

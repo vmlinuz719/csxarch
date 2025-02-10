@@ -118,6 +118,7 @@ static struct instruction_def opcodes[] = {
     
     {"srand",   7, 0, 4, asm_srand},
     {"rand",    7, 1, 4, asm_rand},
+    {"ldat",    7, 2, 4, asm_ls_c},
     
     {"ldcs",     10, 0, 4, asm_lss_c},
     {"ldczs",    10, 1, 4, asm_lss_c},
