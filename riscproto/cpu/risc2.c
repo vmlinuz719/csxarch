@@ -61,31 +61,6 @@ void lcca64_xmu_7(lcca_t *cpu, uint32_t inst) {
     uint64_t fn = FN(inst);
 
     switch (fn) {
-        case 0: {
-            uint64_t z = (c += UINT64_C(0x9E3779B97F4A7C15));
-            z = (z ^ (z >> 30)) * UINT64_C(0xBF58476D1CE4E5B9);
-            z = (z ^ (z >> 27)) * UINT64_C(0x94D049BB133111EB);
-            z = z ^ (z >> 31);
-            cpu->rng[0] = z;
-            
-            z = (c += UINT64_C(0x9E3779B97F4A7C15));
-            z = (z ^ (z >> 30)) * UINT64_C(0xBF58476D1CE4E5B9);
-            z = (z ^ (z >> 27)) * UINT64_C(0x94D049BB133111EB);
-            z = z ^ (z >> 31);
-            cpu->rng[1] = z;
-        } break;
-        
-        case 1: {
-            const uint64_t s0 = cpu->rng[0];
-            uint64_t s1 = cpu->rng[1];
-            const uint64_t result = rotl(s0 * 5, 7) * 9;
-
-            s1 ^= s0;
-            cpu->rng[0] = rotl(s0, 24) ^ s1 ^ (s1 << 16); // a, b
-            cpu->rng[1] = rotl(s1, 37); // c
-            set_reg_q(cpu, RA(inst), result);
-        } break;
-        
         case 2: {
             lcca_error_t e = 0;
             uint64_t addr = translate(cpu, c + d, CHAR, READ, &e);
@@ -673,6 +648,7 @@ void lcca64_ls_e(lcca_t *cpu, uint32_t inst) {
     uint64_t c = get_reg_q(cpu, RC(inst));
     uint64_t d = LS_DISP(inst);
     d = EXT15(d);
+    uint64_t fn = FN(inst);
 
     lcca_error_t e = 0;
     uint64_t result;
@@ -680,18 +656,43 @@ void lcca64_ls_e(lcca_t *cpu, uint32_t inst) {
 
     uint64_t addr;
 
-    switch (FN(inst)) {
+    if ((cpu->c_regs[CR_PSQ] & CR_PSQ_PL) && fn) {
+        error(cpu, IPLT, inst, 0);
+        return;
+    }
+
+    switch (fn) {
         case 0: {
             error(cpu, SVCT, inst, 0);
             return;
         }
 
-        case 3: {
-            if (cpu->c_regs[CR_PSQ] & CR_PSQ_PL) {
-                error(cpu, IPLT, inst, 0);
-                return;
-            }
+        case 1: {
+            uint64_t z = (c += UINT64_C(0x9E3779B97F4A7C15));
+            z = (z ^ (z >> 30)) * UINT64_C(0xBF58476D1CE4E5B9);
+            z = (z ^ (z >> 27)) * UINT64_C(0x94D049BB133111EB);
+            z = z ^ (z >> 31);
+            cpu->rng[0] = z;
+            
+            z = (c += UINT64_C(0x9E3779B97F4A7C15));
+            z = (z ^ (z >> 30)) * UINT64_C(0xBF58476D1CE4E5B9);
+            z = (z ^ (z >> 27)) * UINT64_C(0x94D049BB133111EB);
+            z = z ^ (z >> 31);
+            cpu->rng[1] = z;
+        } break;
+        
+        case 2: {
+            const uint64_t s0 = cpu->rng[0];
+            uint64_t s1 = cpu->rng[1];
+            const uint64_t result = rotl(s0 * 5, 7) * 9;
 
+            s1 ^= s0;
+            cpu->rng[0] = rotl(s0, 24) ^ s1 ^ (s1 << 16); // a, b
+            cpu->rng[1] = rotl(s1, 37); // c
+            set_reg_q(cpu, RA(inst), result);
+        } break;
+
+        case 3: {
             if (d < 0 || d > CR_MAX) {
                 error(cpu, EMLT, inst, 0);
                 return;
@@ -703,11 +704,6 @@ void lcca64_ls_e(lcca_t *cpu, uint32_t inst) {
         } break;
 
         case 4: {
-            if (cpu->c_regs[CR_PSQ] & CR_PSQ_PL) {
-                error(cpu, IPLT, inst, 0);
-                return;
-            }
-
             if (d < 0 || d > CR_MAX) {
                 error(cpu, EMLT, inst, 0);
                 return;
@@ -720,39 +716,17 @@ void lcca64_ls_e(lcca_t *cpu, uint32_t inst) {
         } break;
         
         case 5: {
-            if (cpu->c_regs[CR_PSQ] & CR_PSQ_PL) {
-                error(cpu, IPLT, inst, 0);
-                return;
-            }
-
-            else {
-                result = c;
-                intr_restore_disp(cpu, d << 2);
-            }
+            result = c;
+            intr_restore_disp(cpu, d << 2);
         } break;
 
         case 6: {
-            if (cpu->c_regs[CR_PSQ] & CR_PSQ_PL) {
-                error(cpu, IPLT, inst, 0);
-                return;
-            }
-            
             intr_internal(cpu, d & 63, inst, cpu->pc);
             return;
         }
 
         case 7: {
-            if (cpu->c_regs[CR_PSQ] & CR_PSQ_PL) {
-                error(cpu, IPLT, inst, 0);
-                return;
-            }
-
             simdbg_0(cpu, inst);
-            return;
-        }
-
-        default: {
-            error(cpu, EMLT, inst, 0);
             return;
         }
     }

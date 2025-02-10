@@ -115,9 +115,7 @@ static struct instruction_def opcodes[] = {
     {"ldi",     4, 0, 4, asm_im},
     {"ldis",    5, 0, 4, asm_im},
     {"ldgis",   6, 0, 8, asm_lgisl},
-    
-    {"srand",   7, 0, 4, asm_srand},
-    {"rand",    7, 1, 4, asm_rand},
+
     {"ldat",    7, 2, 4, asm_ls_c},
     
     {"ldcs",     10, 0, 4, asm_lss_c},
@@ -135,6 +133,8 @@ static struct instruction_def opcodes[] = {
     {"stqs",     11, 3, 4, asm_lss_q},
 
     {"svc",     14, 0, 4, asm_ls_c},
+    {"srand",   14, 1, 4, asm_srand},
+    {"rand",    14, 2, 4, asm_rand},
     {"mfcr",    14, 3, 4, asm_cr},
     {"mtcr",    14, 4, 4, asm_cr},
     {"rex",     14, 5, 4, asm_ls_rex},
