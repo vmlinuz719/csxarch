@@ -11,6 +11,26 @@
 
 #define SIGN_BIT 0x8000000000000000
 
+uint64_t translate_page(lcca_t *cpu, uint64_t addr, lcca_access_t access_type, lcca_error_t *e) {
+    uint64_t key = PTAG(addr) | GET_PGID(cpu->c_regs[CR_PSQ]);
+    int index = tlb_lookup(&cpu->tlb, key);
+    if (index == -1) {
+        *e = PGNM;
+        return 0;
+    }
+
+    uint64_t value = cpu->tlb.entries[index].value;
+    if (!(PFLAG_P(value))) {
+        *e = PGNP;
+        return 0;
+    } else if (access_type == WRITE && PFLAG_W(value)) {
+        *e = PGNW;
+        return 0;
+    }
+
+    return PTAG(value) | POFF(addr);
+}
+
 uint64_t translate_linear(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_access_t access_type, lcca_error_t *e, int do_page) {
     if (!(cpu->c_regs[CR_PSQ] & CR_PSQ_PGID)) return addr;
 
@@ -59,9 +79,9 @@ uint64_t translate_linear(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_acc
     }
 
     else {
-        // TODO: TLB lookup
-        *e = NXMU;
-        return addr;
+        uint64_t pa = translate_page(cpu, base + offset, access_type, e);
+        if (*e) return addr;
+        else return pa;
     }
 }
 

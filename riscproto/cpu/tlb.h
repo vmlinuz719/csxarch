@@ -8,6 +8,7 @@
 
 #define PGID(x) ((x) & 0x3FF) // 10-bit Page Group Identifiers
 #define PTAG(x) ((x) & 0xFFFFFFFFFFFFFC00) // 54-bit Page Tag
+#define POFF(x) (PGID(x))
 
 #define PFLAG_P(x) ((x) & 1)
 #define PFLAG_W(x) ((x) & 2)
