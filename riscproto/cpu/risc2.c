@@ -128,7 +128,7 @@ void lcca64_br_1(lcca_t *cpu, uint32_t inst) {
     }
 }
 
-uint64_t translate(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_access_t access_type, lcca_error_t *e) {
+uint64_t translate_linear(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_access_t access_type, lcca_error_t *e, int do_page) {
     if (!(cpu->c_regs[CR_PSQ] & CR_PSQ_PGID)) return addr;
 
     if (addr & ((1 << size) - 1)) {
@@ -171,7 +171,7 @@ uint64_t translate(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_access_t a
     }
 
     // fprintf(stderr, "A %lX\n", base + offset);
-    if (!(rights & CR_OD_P)) {
+    if ((!(rights & CR_OD_P)) || (!do_page)) {
         return base + offset;
     }
 
@@ -180,6 +180,10 @@ uint64_t translate(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_access_t a
         *e = NXMU;
         return addr;
     }
+}
+
+uint64_t translate(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_access_t access_type, lcca_error_t *e) {
+    return translate_linear(cpu, addr, size, access_type, e, 1);
 }
 
 void lcca64_ls_2(lcca_t *cpu, uint32_t inst) {
