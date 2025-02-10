@@ -151,6 +151,29 @@ void lcca64_xmu_7(lcca_t *cpu, uint32_t inst) {
             tlb_invpgid(&cpu->tlb, pgid);
         } break;
 
+        case 4: {
+            uint64_t row = (c + d) % TLB_SIZE;
+            uint64_t result = cpu->tlb.entries[row].key;
+            set_reg_q(cpu, RA(inst), result);
+        } break;
+
+        case 5: {
+            uint64_t row = (c + d) % TLB_SIZE;
+            uint64_t new_key = get_reg_q(cpu, RA(inst));
+            tlb_set(&cpu->tlb, row, new_key);
+        } break;
+
+        case 6: {
+            uint64_t row = (c + d) % TLB_SIZE;
+            uint64_t result = cpu->tlb.entries[row].value;
+            set_reg_q(cpu, RA(inst), result);
+        } break;
+
+        case 7: {
+            uint64_t row = (c + d) % TLB_SIZE;
+            cpu->tlb.entries[row].value = get_reg_q(cpu, RA(inst));
+        } break;
+
         default: {
             error(cpu, EMLT, inst, 0);
             return;
