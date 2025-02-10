@@ -170,11 +170,9 @@ uint64_t translate(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_access_t a
         cpu->c_regs[CR_OD0 + object] |= CR_OD_D;
     }
 
-    addr = base + offset;
-
     // fprintf(stderr, "A %lX\n", base + offset);
     if (!(rights & CR_OD_P)) {
-        return addr;
+        return base + offset;
     }
 
     else {
