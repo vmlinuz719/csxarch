@@ -11,6 +11,64 @@
 
 #define SIGN_BIT 0x8000000000000000
 
+uint64_t translate_linear(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_access_t access_type, lcca_error_t *e, int do_page) {
+    if (!(cpu->c_regs[CR_PSQ] & CR_PSQ_PGID)) return addr;
+
+    if (addr & ((1 << size) - 1)) {
+        *e = access_type == FETCH ? XALT : DALT;
+        return addr;
+    }
+
+    uint64_t object = addr >> 60;
+    uint64_t base = cpu->c_regs[CR_OB0 + object] & 0xFFFFFFFFFFFFFC00;
+
+    uint64_t limit = cpu->c_regs[CR_OD0 + object] & 0x0FFFFFFFFFFFFC00;
+    uint64_t rights = (cpu->c_regs[CR_OD0 + object] & 0x3FF) | (1 << 10);
+
+    uint64_t offset = addr & 0x0FFFFFFFFFFFFFFF;
+    if (offset >> 10 > limit >> 10) {
+        switch (access_type) {
+            case READ: *e = RSGV; break;
+            case WRITE: *e = WSGV; break;
+            case FETCH: *e = XSGV; break;
+        }
+        return addr;
+    }
+
+    rights &= ((cpu->c_regs[CR_PSQ] & CR_PSQ_PL)
+        ? (CR_OD_R | CR_OD_x | CR_OD_w)
+        : (CR_OD_X | CR_OD_W | (1 << 10)))
+        | 31;
+
+    if (!(rights & access_type)) {
+        switch (access_type) {
+            case READ: *e = RSGV; break;
+            case WRITE: *e = WSGV; break;
+            case FETCH: *e = XSGV; break;
+        }
+        return addr;
+    }
+
+    if (access_type == WRITE) {
+        cpu->c_regs[CR_OD0 + object] |= CR_OD_D;
+    }
+
+    // fprintf(stderr, "A %lX\n", base + offset);
+    if ((!(rights & CR_OD_P)) || (!do_page)) {
+        return base + offset;
+    }
+
+    else {
+        // TODO: TLB lookup
+        *e = NXMU;
+        return addr;
+    }
+}
+
+uint64_t translate(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_access_t access_type, lcca_error_t *e) {
+    return translate_linear(cpu, addr, size, access_type, e, 1);
+}
+
 void lcca64_rr_0(lcca_t *cpu, uint32_t inst) {
     uint64_t b = get_reg_q(cpu, RB(inst));
     uint64_t c = get_reg_q(cpu, RC(inst));
@@ -81,6 +139,18 @@ void lcca64_xmu_7(lcca_t *cpu, uint32_t inst) {
             set_reg_q(cpu, RA(inst), addr);
         } break;
 
+        case 2: {
+            uint64_t addr = c + d;
+            uint64_t key = PTAG(addr) | GET_PGID(cpu->c_regs[CR_PSQ]);
+            uint64_t result = (uint64_t)((int64_t)tlb_lookup(&cpu->tlb, key));
+            set_reg_q(cpu, RA(inst), result);
+        } break;
+
+        case 3: {
+            uint64_t pgid = c + d;
+            tlb_invpgid(&cpu->tlb, pgid);
+        } break;
+
         default: {
             error(cpu, EMLT, inst, 0);
             return;
@@ -136,64 +206,6 @@ void lcca64_br_1(lcca_t *cpu, uint32_t inst) {
             }
         } break;
     }
-}
-
-uint64_t translate_linear(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_access_t access_type, lcca_error_t *e, int do_page) {
-    if (!(cpu->c_regs[CR_PSQ] & CR_PSQ_PGID)) return addr;
-
-    if (addr & ((1 << size) - 1)) {
-        *e = access_type == FETCH ? XALT : DALT;
-        return addr;
-    }
-
-    uint64_t object = addr >> 60;
-    uint64_t base = cpu->c_regs[CR_OB0 + object] & 0xFFFFFFFFFFFFFC00;
-
-    uint64_t limit = cpu->c_regs[CR_OD0 + object] & 0x0FFFFFFFFFFFFC00;
-    uint64_t rights = (cpu->c_regs[CR_OD0 + object] & 0x3FF) | (1 << 10);
-
-    uint64_t offset = addr & 0x0FFFFFFFFFFFFFFF;
-    if (offset >> 10 > limit >> 10) {
-        switch (access_type) {
-            case READ: *e = RSGV; break;
-            case WRITE: *e = WSGV; break;
-            case FETCH: *e = XSGV; break;
-        }
-        return addr;
-    }
-
-    rights &= ((cpu->c_regs[CR_PSQ] & CR_PSQ_PL)
-        ? (CR_OD_R | CR_OD_x | CR_OD_w)
-        : (CR_OD_X | CR_OD_W | (1 << 10)))
-        | 31;
-
-    if (!(rights & access_type)) {
-        switch (access_type) {
-            case READ: *e = RSGV; break;
-            case WRITE: *e = WSGV; break;
-            case FETCH: *e = XSGV; break;
-        }
-        return addr;
-    }
-
-    if (access_type == WRITE) {
-        cpu->c_regs[CR_OD0 + object] |= CR_OD_D;
-    }
-
-    // fprintf(stderr, "A %lX\n", base + offset);
-    if ((!(rights & CR_OD_P)) || (!do_page)) {
-        return base + offset;
-    }
-
-    else {
-        // TODO: TLB lookup
-        *e = NXMU;
-        return addr;
-    }
-}
-
-uint64_t translate(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_access_t access_type, lcca_error_t *e) {
-    return translate_linear(cpu, addr, size, access_type, e, 1);
 }
 
 void lcca64_ls_2(lcca_t *cpu, uint32_t inst) {

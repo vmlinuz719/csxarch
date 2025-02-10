@@ -118,6 +118,8 @@ static struct instruction_def opcodes[] = {
 
     {"ldlin",   7, 0, 4, asm_ls_c},
     {"ldat",    7, 1, 4, asm_ls_c},
+    {"ldtr",    7, 2, 4, asm_ls_c},
+    {"invpg",   7, 3, 4, asm_invpg},
     
     {"ldcs",     10, 0, 4, asm_lss_c},
     {"ldczs",    10, 1, 4, asm_lss_c},
@@ -445,7 +447,7 @@ uint64_t asm_mv(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err
 }
 
 uint64_t asm_srand(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
-    uint32_t result = (opcode << 28) | (fn << 10);
+    uint32_t result = (opcode << 28) | (fn << 20);
 
     char event[MAX_EVENT_LEN];
     char *args[MAX_ARGS];
@@ -464,7 +466,7 @@ uint64_t asm_srand(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *
 }
 
 uint64_t asm_rand(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
-    uint32_t result = (opcode << 28) | (fn << 10);
+    uint32_t result = (opcode << 28) | (fn << 20);
 
     char event[MAX_EVENT_LEN];
     char *args[MAX_ARGS];
@@ -557,6 +559,32 @@ uint64_t asm_br_j(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *e
 
     result |= (a & 0x1F) << 23;
     result |= (d >> 2) & 0xFFFFF;
+    return result;
+}
+
+uint64_t asm_invpg(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
+    uint32_t result = (opcode << 28) | (fn << 20);
+
+    char event[MAX_EVENT_LEN];
+    char *args[MAX_ARGS];
+    int got_args = get_args(ic->input, &ic->line, &ic->col, args, MAX_ARGS, event, MAX_EVENT_LEN);
+    if (got_args != 1 && got_args != 2) {
+        *err = -1;
+        return 0;
+    }
+
+    int c = 0, d = 0;
+
+    int i = 0;
+
+    if (got_args == 2) {
+        d = label_or_num(ic, *pc, args[1], 0x3FF, NULL, err); if (*err) return 0;
+    }
+
+    c = get_register_literal(args[0], err); if (*err) return 0;
+
+    result |= (d & 0x3FF) << 5;
+    result |= (c & 0x1F);
     return result;
 }
 
