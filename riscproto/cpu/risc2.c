@@ -79,8 +79,9 @@ uint64_t translate_linear(lcca_t *cpu, uint64_t addr, lcca_size_t size, lcca_acc
     }
 
     else {
-        uint64_t pa = translate_page(cpu, base + offset, access_type, e);
-        if (*e) return addr;
+        uint64_t linear = base + offset;
+        uint64_t pa = translate_page(cpu, linear, access_type, e);
+        if (*e) return linear;
         else return pa;
     }
 }
