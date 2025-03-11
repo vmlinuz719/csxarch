@@ -33,7 +33,9 @@ typedef enum {
     MESSAGE_IN
 } scsi_bus_phase_t;
 
-struct scsi_device {};
+struct scsi_device {
+    // TODO: define this
+};
 
 struct scsi_bus {
     struct scsi_device *devices[16];
