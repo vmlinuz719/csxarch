@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <time.h>
 #include <pthread.h>
 
 typedef enum {
@@ -48,9 +50,57 @@ struct scsi_bus {
     int buf_index_low, buf_index_high;
     scsi_bus_phase_t phase;
     int status, sense_key, sense_code, sense_qual, sense_info;
-    
+
     uint8_t command[10];
 };
+
+int scsi_init(struct scsi_bus *bus, uint32_t buf_max) {
+    bus->data_buffer = calloc(buf_max, sizeof(uint8_t));
+    if (bus->data_buffer == NULL) return -1;
+
+    return pthread_mutex_init(&bus->arbitration_lock, NULL);
+}
+
+int scsi_destroy(struct scsi_bus *bus) {
+    free(bus->data_buffer);
+    return pthread_mutex_destroy(&bus->arbitration_lock);
+}
+
+void scsi_reset(struct scsi_bus *bus) {
+    bus->phase = DATA_OUT;
+    bus->buf_index_high = bus->buf_index_low = 0;
+    bus->atn = false;
+    bus->initiator = bus->target = -1;
+    bus->lun = 0;
+    bus->sense_key = bus->sense_code = bus->sense_qual = bus->sense_info = 0;
+}
+
+void scsi_arbitrate(struct scsi_bus *bus, int initiator) {
+    pthread_mutex_lock(&bus->arbitration_lock);
+    bus->initiator = initiator;
+}
+
+int scsi_try_arbitrate(struct scsi_bus *bus, int initiator) {
+    if (
+        bus->initiator < 0
+        && pthread_mutex_trylock(&bus->arbitration_lock) == 0
+    ) {
+        bus->initiator = initiator;
+        return 1;
+    }
+
+    return 0;
+}
+
+void scsi_release(struct scsi_bus *bus) {
+    if (bus->initiator < 0) return;
+
+    bus->phase = DATA_OUT;
+    bus->initiator = bus->target = -1;
+    bus->buf_index_high = bus->buf_index_low = 0;
+
+    pthread_mutex_unlock(&bus->arbitration_lock);
+}
 
 int main(int argc, char *argv[]) {
     printf("Test Successful\n");
