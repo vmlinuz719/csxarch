@@ -38,20 +38,18 @@ struct scsi_device {
 };
 
 struct scsi_bus {
-    struct scsi_device *devices[16];
-
     pthread_mutex_t arbitration_lock;
-    int initiator, target, lun;
 
-    bool atn, req;
-
+    struct scsi_device *devices[16];
     uint8_t *data_buffer;
+    
+    int initiator, target, lun;
+    bool atn, req;
     int buf_index_low, buf_index_high;
-
-    uint8_t command[10];
-
     scsi_bus_phase_t phase;
     int status, sense_key, sense_code, sense_qual, sense_info;
+    
+    uint8_t command[10];
 };
 
 int main(int argc, char *argv[]) {
