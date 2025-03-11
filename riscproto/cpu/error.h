@@ -30,7 +30,5 @@ typedef enum {
     SVCT = 48  // Supervisor Call Trap
 } lcca_error_t;
 
-// test
-
 #endif
 
