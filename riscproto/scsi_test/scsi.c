@@ -1,3 +1,8 @@
+/* 
+ * Adapted from
+ * https://github.com/open-simh/simh/blob/master/sim_scsi.c
+ */
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -39,10 +44,12 @@ struct scsi_device {
     // TODO: define this
 };
 
+#define SCSI_NUM_DEVICES 8
+
 struct scsi_bus {
     pthread_mutex_t arbitration_lock;
 
-    struct scsi_device *devices[16];
+    struct scsi_device *devices[SCSI_NUM_DEVICES];
     uint8_t *data_buffer;
     
     int initiator, target, lun;
@@ -57,6 +64,10 @@ struct scsi_bus {
 int scsi_init(struct scsi_bus *bus, uint32_t buf_max) {
     bus->data_buffer = calloc(buf_max, sizeof(uint8_t));
     if (bus->data_buffer == NULL) return -1;
+
+    for (int i = 0; i < SCSI_NUM_DEVICES; i++) {
+        bus->devices[i] = NULL;
+    }
 
     return pthread_mutex_init(&bus->arbitration_lock, NULL);
 }
@@ -100,6 +111,45 @@ void scsi_release(struct scsi_bus *bus) {
     bus->buf_index_high = bus->buf_index_low = 0;
 
     pthread_mutex_unlock(&bus->arbitration_lock);
+}
+
+void scsi_set_atn(struct scsi_bus *bus) {
+    bus->atn = true;
+    if (bus->target >= 0) bus->phase = MESSAGE_OUT;
+}
+
+void scsi_release_atn(struct scsi_bus *bus) {
+    bus->atn = false;
+}
+
+void scsi_set_req(struct scsi_bus *bus) {
+    bus->req = true;
+}
+
+void scsi_release_req(struct scsi_bus *bus) {
+    bus->req = false;
+}
+
+void scsi_set_phase(struct scsi_bus *bus, scsi_bus_phase_t phase) {
+    bus->phase = phase;
+}
+
+bool scsi_select(struct scsi_bus *bus, int target) {
+    if (bus->initiator < 0 || bus->target >= 0) {
+        return false;
+    }
+
+    if (bus->devices[target] != NULL) {
+        if (bus->atn) scsi_set_phase(bus, MESSAGE_OUT);
+        else scsi_set_phase(bus, COMMAND);
+        
+        bus->target = target;
+        scsi_set_req(bus);
+        return true;
+    }
+
+    scsi_release(bus);
+    return false;
 }
 
 int main(int argc, char *argv[]) {
