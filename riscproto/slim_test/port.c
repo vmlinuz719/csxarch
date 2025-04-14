@@ -13,3 +13,14 @@ void port_write(slim_port_t *port, uint8_t data) {
     port->port_write(port->ctx, data);
 }
 
+/*
+    Write to router port:
+        Accept byte into rx buffer
+        If second byte:
+            Select tx port, set size
+            Mark source port in header
+        If size reached:
+            Secure tx port lock
+            Write rx buffer to tx port
+            Release tx lock
+*/
