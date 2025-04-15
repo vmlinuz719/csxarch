@@ -36,4 +36,9 @@ typedef struct rx_port_ctx {
     uint16_t index;
 } rx_port_ctx_t;
 
+typedef struct router {
+    tx_ports_t tx;
+    rx_port_ctx_t rx_ctx[16];
+    slim_port_t rx[16];
+} slim_router_t;
 
