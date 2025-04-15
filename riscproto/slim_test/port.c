@@ -26,7 +26,7 @@ void port_write(slim_port_t *port, uint8_t data) {
 */
 
 typedef struct tx_ports {
-    port p[16];
+    slim_port_t p[16];
     pthread_mutex_t tx_lock[16];
 } tx_ports_t;
 
@@ -34,6 +34,6 @@ typedef struct rx_port_ctx {
     tx_ports_t *tx;
     uint8_t buf[2048];
     uint16_t index;
-}
+} rx_port_ctx_t;
 
 
