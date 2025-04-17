@@ -5,6 +5,7 @@
 #include <pthread.h>
 
 #define RX_BUF_SIZE 2048
+#define ROUTER_PORTS 16
 
 typedef struct port {
     void *ctx;
@@ -28,8 +29,8 @@ void port_write(slim_port_t *port, uint8_t data) {
 */
 
 typedef struct tx_ports {
-    slim_port_t p[16];
-    pthread_mutex_t tx_lock[16];
+    slim_port_t p[ROUTER_PORTS];
+    pthread_mutex_t tx_lock[ROUTER_PORTS];
 } tx_ports_t;
 
 typedef struct rx_port_ctx {
@@ -41,9 +42,13 @@ typedef struct rx_port_ctx {
 
 typedef struct router {
     tx_ports_t tx;
-    rx_port_ctx_t rx_ctx[16];
-    slim_port_t rx[16];
+    rx_port_ctx_t rx_ctx[ROUTER_PORTS];
+    slim_port_t rx[ROUTER_PORTS];
 } slim_router_t;
+
+void null_write(void *vctx, uint8_t ch) {
+    return;
+}
 
 void router_rx_write(void *vctx, uint8_t ch) {
     rx_port_ctx_t *ctx = (rx_port_ctx_t *) vctx;
@@ -80,5 +85,27 @@ void router_rx_write(void *vctx, uint8_t ch) {
 
         ctx->index = 0;
         ctx->size = 0;
+    }
+}
+
+void router_init(slim_router_t *router) {
+    for (int i = 0; i < ROUTER_PORTS; i++) {
+        router->rx[i].ctx = &(router->rx_ctx[i]);
+        router->rx[i].port_write = router_rx_write;
+
+        router->rx_ctx[i].tx = &(router->tx);
+        router->rx_ctx[i].id = i;
+        router->rx_ctx[i].index = 0;
+        router->rx_ctx[i].size = 0;
+
+        router->tx.p[i].ctx = NULL;
+        router->tx.p[i].port_write = null_write;
+        pthread_mutex_init(&(router->tx.tx_lock[i]), NULL);
+    }
+}
+
+void router_destroy(slim_router_t *router) {
+    for (int i = 0; i < ROUTER_PORTS; i++) {
+        pthread_mutex_destroy(&(router->tx.tx_lock[i]));
     }
 }
