@@ -8,6 +8,7 @@
 #include "error.h"
 #include "mmio.h"
 #include "lcca.h"
+#include "console.h"
 
 uint64_t get_reg_q(lcca_t *cpu, int reg) {
     if (reg == 0) {
@@ -172,11 +173,12 @@ void *lcca_run(lcca_t *cpu) {
         } else {
             pthread_mutex_lock(&(cpu->intr_mutex));
             if (!(cpu->c_regs[CR_PSQ] & CR_PSQ_EI)) {
-                fprintf(stderr, "\nCPU disabled, press Ctrl-C to exit emulator at:\n");
+                fprintf(stderr, "\nCPU disabled, exiting emulator at:\n");
                 // TODO: Deduplicate PSQ printing
                 fprintf(stderr, " PC: %16lX PSQ: %016lX (%03lX", cpu->pc, cpu->c_regs[CR_PSQ], (cpu->c_regs[CR_PSQ] & CR_PSQ_PGID) >> 6);
                 print_bits(cpu->c_regs[CR_PSQ], psq_bits);
                 fprintf(stderr, ")\n");
+                return NULL;
             }
             pthread_cond_wait(
                 &(cpu->wake),
@@ -207,6 +209,9 @@ int main(int argc, char *argv[]) {
     lcca_bus_t bus;
     pthread_mutex_t cas_lock;
 
+    mmio_unit_t mmio[4096];
+    memset(mmio, 0, sizeof(mmio_unit_t) * 4096);
+
     uint8_t *mem = malloc(65536 * 32);
     bus.memory = mem;
     
@@ -218,6 +223,8 @@ int main(int argc, char *argv[]) {
     bus.mem_limit = 65536 * 32;
     pthread_mutex_init(&cas_lock, NULL);
     bus.cas_lock = &cas_lock;
+    bus.mmio = mmio;
+    bus.num_units = 4096;
 
     lcca_t cpu;
     memset(&cpu, 0, sizeof(cpu));
@@ -237,8 +244,12 @@ int main(int argc, char *argv[]) {
     pthread_mutex_init(&(cpu.intr_mutex), NULL);
     pthread_cond_init(&(cpu.wake), NULL);
 
+    init_console(&(mmio[0x101]), &cpu);
+
     cpu.running = 1;
     lcca_run(&cpu);
+
+    mmio[0x101].destroy(mmio[0x101].ctx);
 
     free(mem);
     tlb_destroy(&(cpu.tlb));
