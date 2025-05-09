@@ -56,6 +56,11 @@ start:      ldca    a3,ct,message@start
             call    strlen
             hvc     4,rv
             
+            ldi     a0,0x101
+            shl     a1,a0,0,32
+            ldcs    rv,6,a1,0
+            hvc     4,rv
+
             ldi     a0,4
             mtcr    a0,psq
 

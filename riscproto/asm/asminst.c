@@ -63,6 +63,7 @@ uint64_t asm_tr(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err
 uint64_t asm_ret(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t asm_srand(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t asm_rand(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
+uint64_t asm_invpg(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 
 uint64_t define(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t align(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
