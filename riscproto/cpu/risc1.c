@@ -239,6 +239,7 @@ int main(int argc, char *argv[]) {
     cpu.operations[7] = lcca64_xmu_7;
     cpu.operations[10] = lcca64_ls_a;
     cpu.operations[11] = lcca64_ls_b;
+    cpu.operations[12] = lcca64_rr_c;
     cpu.operations[14] = lcca64_ls_e;
     cpu.pc = 0x10000;
     pthread_mutex_init(&(cpu.intr_mutex), NULL);
