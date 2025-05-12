@@ -124,6 +124,49 @@ void lcca64_rr_0(lcca_t *cpu, uint32_t inst) {
     }
 }
 
+void lcca64_rr_c(lcca_t *cpu, uint32_t inst) {
+    uint64_t b = get_reg_q(cpu, RB(inst));
+    uint64_t c = get_reg_q(cpu, RC(inst));
+    uint64_t d = RR_IMM(inst);
+    d = EXT10(d);
+    uint64_t fn = FN(inst);
+
+    switch (fn) {
+        case 0: {
+            // CMOVEQ
+            if (b == d) {
+                set_reg_q(cpu, RA(inst), c);
+            }
+        } break;
+
+        case 1: {
+            // CMOVNE
+            if (b != d) {
+                set_reg_q(cpu, RA(inst), c);
+            }
+        } break;
+
+        case 2: {
+            // CMOVGT
+            if (b > d) {
+                set_reg_q(cpu, RA(inst), c);
+            }
+        } break;
+
+        case 3: {
+            // CMOVLEQ
+            if (b <= d) {
+                set_reg_q(cpu, RA(inst), c);
+            }
+        } break;
+
+        default: {
+            error(cpu, EMLT, inst, 0);
+            return;
+        }
+    }
+}
+
 static inline uint64_t rotl(const uint64_t x, int k) {
 	return (x << k) | (x >> (64 - k));
 }

@@ -140,6 +140,11 @@ static struct instruction_def opcodes[] = {
     {"ldcas",    11, 2, 4, asm_lss_c},
     {"stqs",     11, 3, 4, asm_lss_q},
 
+    {"moveq",  12, 0, 4, asm_rr},
+    {"movne",  12, 1, 4, asm_rr},
+    {"movgt",  12, 2, 4, asm_rr},
+    {"movleq",  12, 3, 4, asm_rr},
+
     {"svc",     14, 0, 4, asm_ls_c},
     {"srand",   14, 1, 4, asm_srand},
     {"rand",    14, 2, 4, asm_rand},

@@ -129,6 +129,7 @@ void lcca64_im_6(lcca_t *, uint32_t);
 void lcca64_xmu_7(lcca_t *, uint32_t);
 void lcca64_ls_a(lcca_t *, uint32_t);
 void lcca64_ls_b(lcca_t *, uint32_t);
+void lcca64_rr_c(lcca_t *, uint32_t);
 void lcca64_ls_e(lcca_t *, uint32_t);
 
 typedef enum {
