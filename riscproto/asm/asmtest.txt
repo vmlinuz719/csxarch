@@ -78,4 +78,11 @@ strlen_b0:  sub     rv,a0,p0
 
 strlen_end: ret
 
+collatz_i:  shl     rv,p0,0,1
+            add     a0,p0,p0,1
+            and     a2,p0,0,1
+            add     a1,p0,a0
+            movne   rv,a2,a1
+            ret
+
 message:    asciz   "Debug: Successful test program IPL"
