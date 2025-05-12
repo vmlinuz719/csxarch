@@ -61,6 +61,20 @@ start:      ldca    a3,ct,message@start
             ldcs    rv,6,a1,0
             hvc     4,rv
 
+            ;;;;;;; 1100 / time
+            
+            define  iterations,100000000
+            ldis    a1,iterations@h
+            add     x0,a1,0,iterations@l
+            hvc     4,x0
+            xor     x1,x1,x1
+            
+loop:       inc     x1
+            mov     p0,x1
+            call    collatz_i
+            sub     rv,x0,x1
+            bnz     rv,loop
+
             ldi     a0,4
             mtcr    a0,psq
 
