@@ -134,6 +134,7 @@ bfk_read_w: ldcs    a2,6,a4,0
             and     a3,a2,0,128
             bez     a3,bfk_read_w
             ldcs    a1,6,a4,1
+            moveq   a1,a1,0,4           ; handle EOF
             stc     a1,x1
             br      bfk_inc
 
