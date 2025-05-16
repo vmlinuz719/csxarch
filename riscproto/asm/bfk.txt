@@ -1,0 +1,147 @@
+            origin  0x10000
+
+ltext:
+
+ipl:        ldis    a0,ltext@h          ; establish addressability
+            or      ct,a0,0,ltext@l
+            
+            ldq     a0,ct,base0@ltext   ; load identity-mapped segment
+            ldq     a1,ct,desc0@ltext
+            mtcr    a0,b0
+            mtcr    a1,d0
+            
+            ldq     a2,ct,base8@ltext   ; load supervisor segments
+            ldq     a3,ct,desc8@ltext
+            mtcr    a2,b8
+            mtcr    a3,d8
+            ldq     a0,ct,base9@ltext
+            ldq     a1,ct,desc9@ltext
+            ldq     a2,ct,basea@ltext
+            ldq     a3,ct,desca@ltext
+            mtcr    a0,b9
+            mtcr    a1,d9
+            mtcr    a2,b10
+            mtcr    a3,d10
+            
+            mfcr    a0,psq              ; enable address translation
+            ldi     a1,64
+            mtcr    a0,a1,psq
+            
+            ldcas   ct,4,0              ; set up and enter program
+            mov     sp,0
+            jmp     ct,start
+            
+            align   0x10
+            
+base0:      dq      0x0                 ; storage area
+desc0:      dq      0x0FFFFFFFFFFFFF00  ; XW, max size
+
+base8:      dq      text                ; program segment
+desc8:      dq      0xFE00              ; X, 64K
+
+base9:      dq      0x1000              ; stack segment
+desc9:      dq      0x1D00              ; W, 8K
+
+basea:      dq      0xFFFF000000000000  ; I/O area
+desca:      dq      0x0000FFFFFFFFFD08  ; WC, I/O size
+
+            align   0x400
+            
+text:       origin  0x0
+
+start:      ldi     a0,0x101            ; console on channel 0x101
+            ldi     a2,0xF0             ; echo all, destructive backspace
+            shl     a1,a0,0,32
+            stcs    a2,6,a1,2           ; set control byte
+
+            ldca    x0,ct,program@start ; x0: code pointer
+            ldi     x1,0x2000           ; x1: data pointer
+
+data_init:  xor     a0,a0,a0
+            ldi     a1,0x6000           ; 24K is enough for you
+
+data_in_l:  add     a2,x1,0
+            stc     0,a2
+            inc     a0
+            sub     a3,a0,a1
+            bnz     a3,data_in_l
+
+bfk_loop:   ldc     a0,x0               ; get instruction
+            bez     a0,halt             ; exit if instruction is 0x00
+
+            sub     a3,a0,0,0x2c        ; ,
+            bez     a3,bfk_read
+
+            ldc     a1,x1               ; get data value
+            sub     a2,a0,0,0x5b        ; [
+            sub     a3,a0,0,0x5d        ; ]
+            sub     a4,a0,0,0x2e        ; .
+            bez     a2,bfk_br_f
+            bez     a3,bfk_br_b
+            bez     a4,bfk_prt
+
+            add     a2,a1,0,1           ; are we incrementing data value
+            sub     a3,a1,0,1           ; or decrementing
+            add     a4,x1,0,1           ; are we incrementing data pointer
+            sub     a5,x1,0,1           ; or decrementing
+
+            moveq   a1,a0,a2,0x2b       ; +
+            moveq   a1,a0,a3,0x2d       ; -
+            stc     a1,x1
+            moveq   x1,a0,a4,0x3e       ; >
+            moveq   x1,a0,a5,0x3c       ; <
+
+bfk_inc:    inc     x0
+            br      bfk_loop
+
+bfk_br_f:   bnz     a1,bfk_inc
+            ldi     a3,1
+            
+bfk_br_fl:  inc     x0
+            ldc     a0,x0
+            bez     a0,halt
+            add     a4,a3,0,1
+            sub     a5,a3,0,1
+            moveq   a3,a0,a4,0x5b       ; [
+            moveq   a3,a0,a5,0x5d       ; ]
+            bnz     a3,bfk_br_fl
+            br      bfk_inc
+
+bfk_br_b:   bez     a1,bfk_inc
+            ldi     a3,1
+            
+bfk_br_bl:  dec     x0
+            ldc     a0,x0
+            bez     a0,halt
+            sub     a4,a3,0,1
+            add     a5,a3,0,1
+            moveq   a3,a0,a4,0x5b       ; [
+            moveq   a3,a0,a5,0x5d       ; ]
+            bnz     a3,bfk_br_bl
+            br      bfk_inc
+
+bfk_prt:    ldi     a0,0x101
+            shl     a4,a0,0,32
+bfk_prt_w:  ldcs    a2,6,a4,0
+            and     a3,a2,0,64
+            bez     a3,bfk_prt_w
+            stcs    a1,6,a4,3
+            br      bfk_inc
+
+bfk_read:   ldi     a0,0x101
+            shl     a4,a0,0,32
+bfk_read_w: ldcs    a2,6,a4,0
+            and     a3,a2,0,128
+            bez     a3,bfk_read_w
+            ldcs    a1,6,a4,1
+            stc     a1,x1
+            br      bfk_inc
+
+halt:       ldi     a0,0xcc
+            shl     a1,a0,0,6
+            or      a2,a1,0,4
+            mtcr    a2,psq
+
+program:    ascii   "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>"
+            ascii   ">.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>"
+            asciz   "+.>++."

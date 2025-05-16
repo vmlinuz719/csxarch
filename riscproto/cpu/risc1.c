@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
+#include <time.h>
 
 #include "byteswap.h"
 #include "error.h"
@@ -173,6 +174,10 @@ void *lcca_run(lcca_t *cpu) {
         } else {
             pthread_mutex_lock(&(cpu->intr_mutex));
             if (!(cpu->c_regs[CR_PSQ] & CR_PSQ_EI)) {
+                struct timespec millisecond;
+                millisecond.tv_nsec = 100000000;
+                millisecond.tv_sec = 0;
+                nanosleep(&millisecond, NULL);
                 fprintf(stderr, "\nCPU disabled, exiting emulator at:\n");
                 // TODO: Deduplicate PSQ printing
                 fprintf(stderr, " PC: %16lX PSQ: %016lX (%03lX", cpu->pc, cpu->c_regs[CR_PSQ], (cpu->c_regs[CR_PSQ] & CR_PSQ_PGID) >> 6);
