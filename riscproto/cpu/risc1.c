@@ -157,6 +157,7 @@ void *lcca_run(lcca_t *cpu) {
             if (!fetch_error) {
                 inst = fetch_u4b(bus, addr, &fetch_error);
             }
+            if (!fetch_error) cpu->inst = inst;
             if (fetch_error) error(cpu, fetch_error, 0, addr);
             else if (cpu->c_regs[CR_PSQ] & CR_PSQ_LG) {
                 cpu->pc += 4;

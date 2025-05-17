@@ -92,6 +92,7 @@ typedef struct lcca_t {
     uint64_t pc;
     uint64_t rng[2];
 
+    uint32_t inst;
     uint64_t intr_pending, intr_msg[EIP_EXTERNAL_INTRS];
 
     void (*operations[16]) (struct lcca_t *, uint32_t);
