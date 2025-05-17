@@ -30,7 +30,7 @@ typedef struct {
     uint8_t ctrl_byte;
     
     uint8_t buffer[BUF_SIZE];
-    int current_in, current_out, current_size;
+    int current_in, current_out;
     
     uint8_t prt_buf[PRT_BUF_SIZE];
     int prt_in, prt_out, prt_size;
@@ -52,28 +52,29 @@ uint64_t console_read
 
         uint64_t result = 0;
         
-        if (console_ctx->current_size) result |= CON_READ_READY;
+        if (console_ctx->current_in != console_ctx->current_out) result |= CON_READ_READY;
         
         if (console_ctx->prt_size < PRT_BUF_SIZE) result |= CON_WRITE_READY;
 
-        if (console_ctx->current_size == BUF_SIZE) result |= CON_INPUT_FULL;
+        if ((console_ctx->current_in + 1) % BUF_SIZE == console_ctx->current_out) result |= CON_INPUT_FULL;
         
         return result;
     }
     else if (addr == 1 && size == 1) {
         uint64_t result = 0;
+        int xoff = 0;
         
         pthread_mutex_lock(&(console_ctx->buffer_mutex));
-        if (console_ctx->current_size) {
-            console_ctx->current_size--;
-            if (console_ctx->current_size == BUF_SIZE - 1) {
-                putchar(0x11);
+        if (console_ctx->current_in != console_ctx->current_out) {
+            if ((console_ctx->current_in + 1) % BUF_SIZE == console_ctx->current_out) {
+                xoff = 1;
             }
             result = console_ctx->buffer[console_ctx->current_out];
             console_ctx->current_out =
                 (console_ctx->current_out + 1) % BUF_SIZE;
         }
         pthread_mutex_unlock(&(console_ctx->buffer_mutex));
+        if (xoff) putchar(0x11);
         
         return result;
     }
@@ -97,13 +98,6 @@ void console_write
         console_ctx->ctrl_byte = data & 0xFF;
     }
     else if (addr == 3 && size == 1 && console_ctx->write_ready == 1) {
-        /*
-        console_ctx->write_ready = 0;
-        char c = data & 0xFF;
-        int x = write(1, &c, 1);
-        (void) x;
-        console_ctx->write_ready = 1;
-        */
         pthread_mutex_lock(&(console_ctx->prt_buf_mutex));
         
         if (console_ctx->prt_size < PRT_BUF_SIZE) {
@@ -155,22 +149,21 @@ void *console_thread(void *ctx) {
         if (c == 0x7F) c = '\b';
 
         pthread_mutex_lock(&(console_ctx->buffer_mutex));
-        if (console_ctx->current_size == BUF_SIZE) {
+        if ((console_ctx->current_in + 1) % BUF_SIZE == console_ctx->current_out) {
             putchar(0x07);
         }
         else {
             console_ctx->buffer[console_ctx->current_in] = c;
             console_ctx->current_in = (console_ctx->current_in + 1) % BUF_SIZE;
-            console_ctx->current_size++;
             
-            if (console_ctx->current_size == BUF_SIZE) {
+            if ((console_ctx->current_in + 1) % BUF_SIZE == console_ctx->current_out) {
                 putchar(0x13);
             }
             
             if ((c == '\n' && INTR_RET(console_ctx->ctrl_byte))
                 || (c == 0x1B && INTR_ESC(console_ctx->ctrl_byte))
                 || (INTR_ANY(console_ctx->ctrl_byte))
-                || (console_ctx->current_size == BUF_SIZE)
+                || ((console_ctx->current_in + 1) % BUF_SIZE == console_ctx->current_out)
             ) {
                 lcca_intr(console_ctx->cpu, CONSOLE_IRQ, console_ctx->vec);
             }
@@ -246,7 +239,6 @@ void init_console(mmio_unit_t *u, lcca_t *cpu) {
     ctx->running = 1;
     ctx->current_in = 0;
     ctx->current_out = 0;
-    ctx->current_size = 0;
     ctx->ctrl_byte = 0xF0;
     
     ctx->cpu = cpu;
