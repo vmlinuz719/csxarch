@@ -10,6 +10,7 @@
 #include "mmio.h"
 #include "lcca.h"
 #include "console.h"
+#include "blinkenlights.h"
 
 uint64_t get_reg_q(lcca_t *cpu, int reg) {
     if (reg == 0) {
@@ -250,11 +251,13 @@ int main(int argc, char *argv[]) {
     pthread_mutex_init(&(cpu.intr_mutex), NULL);
     pthread_cond_init(&(cpu.wake), NULL);
 
+    init_blink(&(mmio[0x0]), &cpu);
     init_console(&(mmio[0x101]), &cpu);
 
     cpu.running = 1;
     lcca_run(&cpu);
 
+    mmio[0x0].destroy(mmio[0x0].ctx);
     mmio[0x101].destroy(mmio[0x101].ctx);
 
     free(mem);

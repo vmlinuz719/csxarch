@@ -4,8 +4,8 @@ TARGET_EXEC := cpu108k
 BUILD_DIR := ./obj/
 SRC_DIRS := ./
 
-CFLAGS := -O3 -flto -pthread
-LDFLAGS := -O3 -flto -pthread
+CFLAGS := -O3 -flto -pthread -lSDL2
+LDFLAGS := -O3 -flto -pthread -lSDL2
 
 # Find all the C and C++ files we want to compile
 # Note the single quotes around the * expressions. The shell will incorrectly expand these otherwise, but we want to send the * directly to the find command.

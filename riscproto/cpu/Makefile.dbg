@@ -4,8 +4,8 @@ TARGET_EXEC := cpu108k_dbg
 BUILD_DIR := ./dbg/
 SRC_DIRS := ./
 
-CFLAGS := -O0 -ggdb -pthread
-LDFLAGS := -O0 -ggdb -pthread
+CFLAGS := -O0 -ggdb -pthread -lSDL2
+LDFLAGS := -O0 -ggdb -pthread -lSDL2
 
 # Find all the C and C++ files we want to compile
 # Note the single quotes around the * expressions. The shell will incorrectly expand these otherwise, but we want to send the * directly to the find command.
