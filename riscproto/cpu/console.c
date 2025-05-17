@@ -66,6 +66,9 @@ uint64_t console_read
         pthread_mutex_lock(&(console_ctx->buffer_mutex));
         if (console_ctx->current_size) {
             console_ctx->current_size--;
+            if (console_ctx->current_size == BUF_SIZE - 1) {
+                putchar(0x11);
+            }
             result = console_ctx->buffer[console_ctx->current_out];
             console_ctx->current_out =
                 (console_ctx->current_out + 1) % BUF_SIZE;
@@ -160,6 +163,10 @@ void *console_thread(void *ctx) {
             console_ctx->current_in = (console_ctx->current_in + 1) % BUF_SIZE;
             console_ctx->current_size++;
             
+            if (console_ctx->current_size == BUF_SIZE) {
+                putchar(0x13);
+            }
+            
             if ((c == '\n' && INTR_RET(console_ctx->ctrl_byte))
                 || (c == 0x1B && INTR_ESC(console_ctx->ctrl_byte))
                 || (INTR_ANY(console_ctx->ctrl_byte))
@@ -171,6 +178,7 @@ void *console_thread(void *ctx) {
             if (c != 0x1B) echo(c, console_ctx);
         }
         pthread_mutex_unlock(&(console_ctx->buffer_mutex));
+        if (c == EOF) break;
     }
     
     return NULL;
