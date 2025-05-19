@@ -12,8 +12,13 @@
 #include "error.h"
 #include "blinkenlights.h"
 
-#define SCREEN_WIDTH 640
-#define SCREEN_HEIGHT 128
+#define SCREEN_WIDTH 1280
+#define SCREEN_HEIGHT 256
+#define PANEL_ROWS 64
+#define PANEL_VPAD 10
+#define PANEL_HPAD 2
+#define LED_HEIGHT 16
+#define LED_WIDTH  16
 
 typedef struct {
     int running;
@@ -50,12 +55,6 @@ void *blink_thread(void *ctx) {
         SDL_Quit();
         return NULL;
     }
-    
-#define PANEL_ROWS 64
-#define PANEL_VPAD 5
-#define PANEL_HPAD 1
-#define LED_HEIGHT 8
-#define LED_WIDTH  8
     
     uint64_t panel_rows[PANEL_ROWS];
     int start_led[PANEL_ROWS] = {
