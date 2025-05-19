@@ -121,7 +121,7 @@ void *blink_thread(void *ctx) {
                 /* Look for a keypress */
                 case SDL_KEYDOWN:
                     /* Check the SDLKey values and move change the coords */
-                    switch( event.key.keysym.sym ){
+                    switch( event.key.keysym.scancode ){
                         /*
                         case SDLK_LEFT:
                             alien_x -= 1;
@@ -130,10 +130,13 @@ void *blink_thread(void *ctx) {
                             alien_x += 1;
                             break;
                         */
-                        case SDLK_UP:
+                        case SDL_SCANCODE_UP:
                             if (selection < R_ABI_SP - 1) selection++;
                             break;
-                        case SDLK_DOWN:
+                        case SDL_SCANCODE_T:
+                            blink_ctx->cpu->throttle ^= 1;
+                            break;
+                        case SDL_SCANCODE_DOWN:
                             if (selection > 1) selection--;
                             break;
                         default:

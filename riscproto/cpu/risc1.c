@@ -138,6 +138,13 @@ void *lcca_run(lcca_t *cpu) {
     uint64_t now_pending = 0;
 
     while(cpu->running) {
+        if (cpu->throttle) {
+            struct timespec millisecond;
+            millisecond.tv_nsec = 33333333;
+            millisecond.tv_sec = 0;
+            nanosleep(&millisecond, NULL);
+        }
+
         if ((cpu->c_regs[CR_PSQ] & CR_PSQ_EI) && (now_pending = cpu->intr_pending & cpu->c_regs[CR_EIM])) {
             for (int i = 0; i < EIP_EXTERNAL_INTRS; i++) {
                 if (now_pending & (1L << i)) {
@@ -256,6 +263,7 @@ int main(int argc, char *argv[]) {
     init_console(&(mmio[0x101]), &cpu);
 
     cpu.running = 1;
+    cpu.throttle = 0;
     lcca_run(&cpu);
 
     mmio[0x0].destroy(mmio[0x0].ctx);

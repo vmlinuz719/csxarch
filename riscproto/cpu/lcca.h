@@ -99,7 +99,7 @@ typedef struct lcca_t {
 
     struct tlb tlb;
 
-    int running;
+    int running, throttle;
 } lcca_t;
 
 extern const char *psq_bits;

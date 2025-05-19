@@ -67,6 +67,7 @@ uint64_t asm_invpg(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *
 
 uint64_t define(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t align(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
+uint64_t zero(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t asciz(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t ascii(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t origin(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
@@ -156,6 +157,7 @@ static struct instruction_def opcodes[] = {
 
     {"define",  0,0,0, define},
     {"align",   0,0,0, align},
+    {"zero",   0,0,0, zero},
     {"asciz",   0,0,0, asciz},
     {"ascii",   0,0,0, ascii},
     {"origin",  0,0,0, origin},
@@ -293,6 +295,33 @@ uint64_t align(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err)
         }
         *pc = new_pc;
     }
+
+    return 0;
+}
+
+uint64_t zero(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
+    uint32_t result = (opcode << 28) | (fn << 20);
+
+    char event[MAX_EVENT_LEN];
+    char *args[MAX_ARGS];
+    int got_args = get_args(ic->input, &ic->line, &ic->col, args, MAX_ARGS, event, MAX_EVENT_LEN);
+    if (got_args != 1) {
+        *err = -1;
+        return 0;
+    }
+
+    uint64_t d = label_or_num(ic, *pc, args[0], 0xFFFFFFFFFFFFFFFF, NULL, err); if (*err) return 0;
+
+    if (d < 0) { *err = -1; return 0; }
+
+    uint64_t new_pc = (*pc + d);
+    if (ic->output != NULL) {
+        for (uint64_t i = 0; i < d; i++) {
+            // TODO: escape sequences with deduplicated handling
+            emit(ic, 0, 1);
+        }
+    }
+    *pc = new_pc;
 
     return 0;
 }
