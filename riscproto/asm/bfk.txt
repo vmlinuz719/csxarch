@@ -49,13 +49,25 @@ desca:      dq      0x0000FFFFFFFFFD08  ; WC, I/O size
             
 text:       origin  0x0
 
-start:      ldi     a0,0x101            ; console on channel 0x101
-            ldi     a2,0xF0             ; echo all, destructive backspace
+start:      ldca    a3,ct,intr@start
+            mtcr    a3,ia
+            mfcr    a1,psq
+            or      a1,a1,0,1
+            mtcr    a1,psq
+            ldi     a2,-1
+            mtcr    a2,eim
+
+            ldi     a0,0x101            ; console on channel 0x101
+            ldi     a2,0xF7             ; echo all, destructive backspace, intr all
             shl     a1,a0,0,32
             stcs    a2,6,a1,2           ; set control byte
+            ldi     a3,0x101
+            stqs    a3,6,a1,8           ; set vector
 
             ldca    x0,ct,program@start ; x0: code pointer
             ldi     x1,0x2000           ; x1: data pointer
+
+            call    cons_wait
 
 data_init:  xor     a0,a0,a0
             ldi     a1,0x6000           ; 24K is enough for you
@@ -128,17 +140,29 @@ bfk_prt_w:  ldcs    a2,6,a4,0
             stcs    a1,6,a4,3
             br      bfk_inc
 
-bfk_read:   ldi     a0,0x101
-            shl     a4,a0,0,32
-bfk_read_w: ldcs    a2,6,a4,0
-            and     a3,a2,0,128
-            bez     a3,bfk_read_w
-            ldcs    a1,6,a4,1
-          ; hvc     4,a1
-            moveq   a1,a1,0,4           ; handle EOF
-            moveq   a1,a1,0,-1          ; handle alternate EOF
-            stc     a1,x1
+bfk_read:   call    cons_wait
+            stc     rv,x1
             br      bfk_inc
+
+cons_wait:  ldi     a5,1
+            mfcr    a6,a5,psq
+            mtcr    a6,psq              ; with interrupts off
+
+cons_get:   ldi     a0,0x101
+            shl     a4,a0,0,32
+            ldcs    a2,6,a4,0           ; check for data
+            and     a3,a2,0,128
+            bez     a3,cons_do_w        ; if no data, do wait
+
+            ldcs    rv,6,a4,1
+            moveq   rv,a1,0,4           ; handle EOF
+            moveq   rv,a1,0,-1          ; handle alternate EOF
+            ret
+
+cons_do_w:  ldi     a7,5
+            mfcr    a6,psq
+            mtcr    a6,a7,psq           ; wait state with interrupts
+            br      cons_get
 
 halt:       ldi     a0,0xcc
             shl     a1,a0,0,6
@@ -291,3 +315,14 @@ ascii ">>>]>[-]+<]]+>[-<[>>>>>>>>>]<<<<<<<<]>>>>>>>>]<<<<<<<<<[<<<<<<<<<]>>>>[-]
 ascii "+[-[->>>>>>>>>+<<<<<<<<<]>>>>>>>>>]>>>>>->>>>>>>>>>>>>>>>>>>>>>>>>>>-<<<<<<[<<<<"
 ascii "<<<<<]]>>>]"
 asciz ""
+
+            align   256
+
+intr:       dq      0xDEADBEEFDEADBEEF
+
+            align   4096
+
+extn:       ldi     x8,4
+            mfcr    x9,x8,aps
+            mtcr    x9,aps              ; clear wait state
+            rex

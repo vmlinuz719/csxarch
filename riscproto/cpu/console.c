@@ -57,7 +57,7 @@ uint64_t console_read
         if (console_ctx->prt_size < PRT_BUF_SIZE) result |= CON_WRITE_READY;
 
         if ((console_ctx->current_in + 1) % BUF_SIZE == console_ctx->current_out) result |= CON_INPUT_FULL;
-        
+
         return result;
     }
     else if (addr == 1 && size == 1) {
