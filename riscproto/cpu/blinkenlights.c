@@ -150,7 +150,7 @@ void *blink_thread(void *ctx) {
 
     SDL_DestroyRenderer(blink_ctx->render);    
     SDL_DestroyWindow(blink_ctx->window);
-    SDL_Quit();
+    
     return NULL;
 }
 
@@ -159,6 +159,7 @@ void destroy_blink(void *ctx) {
     SDL_Delay(1000);
     blink_ctx->running = 0;
     pthread_join(blink_ctx->thread, NULL);
+    SDL_Quit();
     free(blink_ctx);
 }
 
