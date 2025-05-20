@@ -33,8 +33,6 @@ typedef struct {
 void *blink_thread(void *ctx) {
     blink_ctx_t *blink_ctx = (blink_ctx_t *) ctx;
 
-    if (SDL_Init(SDL_INIT_EVERYTHING) != 0) return NULL;
-    
     blink_ctx->window = SDL_CreateWindow(
         "craptangle",
         SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
@@ -43,7 +41,6 @@ void *blink_thread(void *ctx) {
     );
     
     if (blink_ctx->window == NULL) {
-        SDL_Quit();
         return NULL;
     }
     
@@ -52,7 +49,6 @@ void *blink_thread(void *ctx) {
             SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (blink_ctx->render == NULL) {
         SDL_DestroyRenderer(blink_ctx->render);
-        SDL_Quit();
         return NULL;
     }
     
@@ -161,7 +157,6 @@ void destroy_blink(void *ctx) {
     SDL_Delay(1000);
     blink_ctx->running = 0;
     pthread_join(blink_ctx->thread, NULL);
-    SDL_Quit();
     free(blink_ctx);
 }
 

@@ -4,6 +4,7 @@
 #include <string.h>
 #include <pthread.h>
 #include <time.h>
+#include <SDL2/SDL.h>
 
 #include "byteswap.h"
 #include "error.h"
@@ -259,14 +260,20 @@ int main(int argc, char *argv[]) {
     pthread_mutex_init(&(cpu.intr_mutex), NULL);
     pthread_cond_init(&(cpu.wake), NULL);
 
-    init_blink(&(mmio[0x0]), &cpu);
+    int do_sdl = (SDL_Init(SDL_INIT_EVERYTHING) == 0);
+    
+    if (do_sdl)
+        init_blink(&(mmio[0x0]), &cpu);
     init_console(&(mmio[0x101]), &cpu);
 
     cpu.running = 1;
     cpu.throttle = 0;
     lcca_run(&cpu);
 
-    mmio[0x0].destroy(mmio[0x0].ctx);
+    if (do_sdl) {
+        mmio[0x0].destroy(mmio[0x0].ctx);
+        SDL_Quit();
+    }
     mmio[0x101].destroy(mmio[0x101].ctx);
 
     free(mem);

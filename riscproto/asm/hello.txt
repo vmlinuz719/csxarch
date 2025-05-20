@@ -1,0 +1,145 @@
+            origin  0x10000
+
+ltext:
+
+ipl:        ldis    a0,ltext@h          ; establish addressability
+            or      ct,a0,0,ltext@l
+            
+            ldq     a0,ct,base0@ltext   ; load identity-mapped segment
+            ldq     a1,ct,desc0@ltext
+            mtcr    a0,b0
+            mtcr    a1,d0
+            
+            ldq     a2,ct,base8@ltext   ; load supervisor segments
+            ldq     a3,ct,desc8@ltext
+            mtcr    a2,b8
+            mtcr    a3,d8
+            ldq     a0,ct,base9@ltext
+            ldq     a1,ct,desc9@ltext
+            ldq     a2,ct,basea@ltext
+            ldq     a3,ct,desca@ltext
+            mtcr    a0,b9
+            mtcr    a1,d9
+            mtcr    a2,b10
+            mtcr    a3,d10
+            
+            mfcr    a0,psq              ; enable address translation
+            ldi     a1,64
+            mtcr    a0,a1,psq
+            
+            ldcas   ct,4,0              ; set up and enter program
+            mov     sp,0
+            jmp     ct,start
+            
+            align   0x10
+            
+base0:      dq      0x0                 ; storage area
+desc0:      dq      0x0FFFFFFFFFFFFF00  ; XW, max size
+
+base8:      dq      text                ; program segment
+desc8:      dq      0xFE00              ; X, 64K
+
+base9:      dq      0x1000              ; stack segment
+desc9:      dq      0x1D00              ; W, 8K
+
+basea:      dq      0xFFFF000000000000  ; I/O area
+desca:      dq      0x0000FFFFFFFFFD08  ; WC, I/O size
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+            align   0x400
+            
+text:       origin  0x0
+
+start:      ldca    a3,ct,intr@start
+            mtcr    a3,ia
+            mfcr    a1,psq
+            or      a1,a1,0,1
+            mtcr    a1,psq
+            ldi     a2,-1
+            mtcr    a2,eim
+
+            ldi     a0,0x101            ; console on channel 0x101
+            ldi     a2,0xF7             ; echo all, destr backspace, intr all
+            shl     a1,a0,0,32
+            stcs    a2,6,a1,2           ; set control byte
+            ldi     a3,0x101
+            stqs    a3,6,a1,8           ; set vector
+
+            mov     p0,sp
+            ldi     p1,16
+            add     sp,sp,0,32
+            call    tget
+            
+            hvc     4,rv
+
+halt:       ldi     a0,0xcc
+            shl     a1,a0,0,6
+            or      a2,a1,0,4
+            mtcr    a2,psq
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;       tget - get line from terminal
+            ;
+            ;           p0      address to store read characters
+            ;           p1      max. characters to read
+            ;           rv      num characters read
+            ;
+
+tget:       add     sp,sp,0,16
+            stqs    lr,5,sp,-8
+            
+            stqs    x0,5,sp             ; loop ctr
+            mov     x0,0
+            
+            bez     p1,tget_exit
+            
+tget_loop:  call    cons_wait
+            sub     a0,rv,0,0x0A
+            bez     a0,tget_exit
+            add     a1,x0,p0
+            stc     a0,a1
+            inc     x0
+            sub     a2,p1,x0
+            bgz     a2,tget_loop
+            
+tget_exit:  ldqs    lr,5,sp,-8
+            mov     rv,x0
+            ldqs    x0,5,sp
+            sub     sp,sp,0,16
+            ret
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+cons_wait:  ldi     a5,1
+            mfcr    a6,a5,psq
+            mtcr    a6,psq              ; with interrupts off
+
+cons_get:   ldi     a0,0x101
+            shl     a4,a0,0,32
+            ldcs    a2,6,a4,0           ; check for data
+            and     a3,a2,0,128
+            bez     a3,cons_do_w        ; if no data, do wait
+
+            ldcs    rv,6,a4,1
+            moveq   rv,a1,0,4           ; handle EOF
+            moveq   rv,a1,0,-1          ; handle alternate EOF
+            ret
+
+cons_do_w:  ldi     a7,5
+            mfcr    a6,psq
+            mtcr    a6,a7,psq           ; wait state with interrupts
+            br      cons_get
+
+intr:       zero    0x100
+
+extn:       ldi     x8,4
+            add     sp,sp,0,8
+            stqs    x9,5,sp
+            mfcr    x9,x8,aps
+            mtcr    x9,aps              ; clear wait state
+            ldqs    x9,5,sp
+            sub     sp,sp,0,8
+            rex     0                   ; assembler bug: should just be 'rex'
+
