@@ -78,8 +78,8 @@ echo_loop:  ldca    p0,ct,prompt@start
             call    tput
             
             mov     p0,sp
-            ldi     p1,30
-            add     sp,sp,0,32
+            ldi     p1,126
+            add     sp,sp,0,128
             call    tget
             bez     rv,halt
             
