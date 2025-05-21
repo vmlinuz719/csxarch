@@ -532,7 +532,7 @@ static inline void print_regs(uint64_t *regs, const char *names[]) {
 }
 
 const char *psq_bits = "AOLWPI";
-const char *d_bits = "XWRxwBCDEP";
+const char *d_bits = "XWRxwICDEP";
 
 void print_bits(uint64_t n, const char *bits) {
     int len = strlen(bits);
