@@ -67,7 +67,7 @@ start:      ldca    a3,ct,intr@start
             stqs    a3,6,a1,8           ; set vector
 
             ldi     x9,0x3FFFFF         ; cylon
-            define  timer_spec,0x000000100000001F
+            define  timer_spec,0x000000100000002F
             ldgis   a0,timer_spec@gh
             ldca    a1,a0,timer_spec@gl
             mtcr    a1,tcr
