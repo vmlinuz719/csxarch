@@ -34,7 +34,7 @@ void *blink_thread(void *ctx) {
     blink_ctx_t *blink_ctx = (blink_ctx_t *) ctx;
 
     blink_ctx->window = SDL_CreateWindow(
-        "craptangle",
+        "IST 1108/A",
         SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
         SCREEN_WIDTH, SCREEN_HEIGHT,
         SDL_WINDOW_SHOWN
