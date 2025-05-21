@@ -43,7 +43,7 @@ base9:      dq      0x1000              ; stack segment
 desc9:      dq      0x1D00              ; W, 8K
 
 basea:      dq      0xFFFF000000000000  ; I/O area
-desca:      dq      0x0000FFFFFFFFFD08  ; WC, I/O size
+desca:      dq      0x0000FFFFFFFFFD18  ; WIC, I/O size
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
