@@ -74,13 +74,14 @@ start:      ldca    a3,ct,intr@start
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-            ldca    p0,ct,echo@start
+echo_loop:  ldca    p0,ct,prompt@start
             call    tput
             
             mov     p0,sp
             ldi     p1,30
             add     sp,sp,0,32
             call    tget
+            bez     rv,halt
             
             add     a0,p0,rv
             ldi     a1,0x0A
@@ -90,8 +91,10 @@ start:      ldca    a3,ct,intr@start
             call    tput
             
             sub     sp,sp,0,32
+            br      echo_loop
 
-halt:       ldi     a0,0xcc
+halt:       sub     sp,sp,0,32
+            ldi     a0,0xcc
             shl     a1,a0,0,6
             or      a2,a1,0,4
             mtcr    a2,psq
@@ -153,7 +156,7 @@ tput_exit:  ldqs    lr,5,sp,-16
             ldqs    a0,5,sp
             ldqs    x0,5,sp,-8
             sub     rv,x0,a0
-            sub     sp,sp,0,16
+            sub     sp,sp,0,24
             ret
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -212,5 +215,5 @@ timer:      shl     x8,x9,0,63
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-echo:       asciz   "Echo ---> "
+prompt:     asciz   "Echo ---> "
 
