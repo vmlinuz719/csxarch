@@ -4,6 +4,7 @@
 #include <string.h>
 #include <pthread.h>
 #include <time.h>
+#include <sys/time.h>
 #include <SDL2/SDL.h>
 
 #include "byteswap.h"
@@ -132,6 +133,43 @@ void lcca_intr(void *dev, int intr, uint64_t msg) {
     lcca_wake(cpu);
 }
 
+void *timer_thread(void *ctx) {
+    lcca_t *r = ctx;
+    
+    while (1) {
+        struct timeval t1, t2;
+        double elapsed = 0;
+
+        gettimeofday(&t1, NULL);
+        
+        uint64_t jiffy = ((r->c_regs[CR_TIMER] & 0xFF00000000) >> 32) + 1;
+        struct timespec remaining = {0, 0}, request = {0, 1000000 * jiffy}; 
+        
+        while (elapsed < (double) ((uint64_t) (r->c_regs[CR_TIMER] & 0xFFFFFFFF) + 1)) {
+            nanosleep(&request, &remaining);
+            while (remaining.tv_sec || remaining.tv_nsec) {
+                request.tv_sec = remaining.tv_sec;
+                request.tv_nsec = remaining.tv_nsec;
+                nanosleep(&request, &remaining);
+            }
+          
+            gettimeofday(&t2, NULL);
+
+            elapsed = ((t2.tv_sec - t1.tv_sec) * 1000.0);
+            elapsed += ((t2.tv_usec - t1.tv_usec) / 1000.0);
+        }
+        
+        if (!(r->c_regs[CR_TIMER] & 0xFF00000000)) {
+            r->timer_active = 0;
+            break;
+        } else if (!(r->c_regs[CR_TIMER] & 0x10000000000)) {
+            r->c_regs[CR_TIMER] ^= 0x10000000000;
+            r->timer_msg = 1;
+            lcca_wake(r);
+        }
+    }
+}
+
 void *lcca_run(lcca_t *cpu) {
     lcca_bus_t *bus = cpu->bus;
     lcca_error_t fetch_error;
@@ -144,6 +182,11 @@ void *lcca_run(lcca_t *cpu) {
             millisecond.tv_nsec = 33333333;
             millisecond.tv_sec = 0;
             nanosleep(&millisecond, NULL);
+        }
+
+        if ((cpu->c_regs[CR_PSQ] & CR_PSQ_EI) && cpu->timer_msg) {
+            cpu->timer_msg = 0;
+            intr_internal(cpu, TIME, 0, 0);
         }
 
         if ((cpu->c_regs[CR_PSQ] & CR_PSQ_EI) && (now_pending = cpu->intr_pending & cpu->c_regs[CR_EIM])) {
@@ -200,6 +243,16 @@ void *lcca_run(lcca_t *cpu) {
                 &(cpu->intr_mutex)
             );
             pthread_mutex_unlock(&(cpu->intr_mutex));
+        }
+
+        if (!cpu->timer_active && (cpu->c_regs[CR_TIMER] & 0xFF00000000)) {
+            cpu->timer_active = 1;
+            pthread_create(
+                &(cpu->timer_thread),
+                NULL,
+                timer_thread,
+                cpu
+            );
         }
     }
 
@@ -269,6 +322,8 @@ int main(int argc, char *argv[]) {
     cpu.running = 1;
     cpu.throttle = 0;
     lcca_run(&cpu);
+
+    cpu.timer_active = 0;
 
     if (do_sdl) {
         mmio[0x0].destroy(mmio[0x0].ctx);

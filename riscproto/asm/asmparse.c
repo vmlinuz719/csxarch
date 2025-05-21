@@ -63,6 +63,7 @@ static struct reg_def control_regs[] = {
     {"eip", 6 },
     {"fi",  7 },
     {"fa",  8 },
+    {"tcr", 9 },
     
     {"b0",  16},
     {"b1",  17},

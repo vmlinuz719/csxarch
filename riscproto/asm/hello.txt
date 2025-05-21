@@ -66,6 +66,12 @@ start:      ldca    a3,ct,intr@start
             ldi     a3,0x101
             stqs    a3,6,a1,8           ; set vector
 
+            ldi     x9,0x3FFFFF         ; cylon
+            define  timer_spec,0x000000100000001F
+            ldgis   a0,timer_spec@gh
+            ldca    a1,a0,timer_spec@gl
+            mtcr    a1,tcr
+
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
             ldca    p0,ct,echo@start
@@ -191,6 +197,18 @@ extn:       ldi     x8,4
             ldqs    x9,5,sp
             sub     sp,sp,0,8
             rex     0                   ; assembler bug: should just be 'rex'
+
+            zero    0x6E0
+
+timer:      shl     x8,x9,0,63
+            shl     x9,x9,0,-1
+            or      x9,x8,x9
+
+            ldgis   x8,timer_spec@gh
+            ldca    x8,x8,timer_spec@gl
+            mtcr    x8,tcr
+
+            rex     0
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

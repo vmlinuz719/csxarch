@@ -62,6 +62,8 @@
 #define EIP_EXTERNAL_INTRS  16
 #define CR_FI               7
 #define CR_FA               8
+#define CR_TIMER            9
+
 #define CR_OB0              16
 #define CR_OD0              32
 #define CR_OD_P             (1)
@@ -74,7 +76,6 @@
 #define CR_OD_R             (1 << 7)
 #define CR_OD_W             (1 << 8)
 #define CR_OD_X             (1 << 9)
-#define CR_TIMER            48
 
 #define R_ABI_X8            28
 #define R_ABI_X9            29
@@ -87,19 +88,22 @@ typedef struct lcca_t {
     pthread_mutex_t intr_mutex;
     pthread_cond_t wake;
 
+    pthread_t timer;
+
     uint64_t regs[32];
     uint64_t c_regs[CR_MAX];
     uint64_t pc;
     uint64_t rng[2];
 
-    uint32_t inst;
     uint64_t intr_pending, intr_msg[EIP_EXTERNAL_INTRS];
+
+    uint32_t inst;
+    int running, throttle, timer_active, timer_msg;
+    pthread_t timer_thread;
 
     void (*operations[16]) (struct lcca_t *, uint32_t);
 
     struct tlb tlb;
-
-    int running, throttle;
 } lcca_t;
 
 extern const char *psq_bits;
