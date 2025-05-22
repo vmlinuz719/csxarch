@@ -325,11 +325,15 @@ int main(int argc, char *argv[]) {
 
     cpu.timer_active = 0;
 
+    mmio[0x101].destroy(mmio[0x101].ctx);
+
+    printf("Strike Return to exit...\n");
+    (void) getchar();
+
     if (do_sdl) {
         mmio[0x0].destroy(mmio[0x0].ctx);
         SDL_Quit();
     }
-    mmio[0x101].destroy(mmio[0x101].ctx);
 
     free(mem);
     tlb_destroy(&(cpu.tlb));

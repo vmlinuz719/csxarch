@@ -154,7 +154,6 @@ void *blink_thread(void *ctx) {
 
 void destroy_blink(void *ctx) {
     blink_ctx_t *blink_ctx = (blink_ctx_t *) ctx;
-    SDL_Delay(1000);
     blink_ctx->running = 0;
     pthread_join(blink_ctx->thread, NULL);
     free(blink_ctx);
