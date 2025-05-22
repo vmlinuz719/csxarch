@@ -90,7 +90,7 @@ echo_loop:  ldca    p0,ct,prompt@start
             
             call    tput
             
-            sub     sp,sp,0,32
+            sub     sp,sp,0,128
             br      echo_loop
 
 halt:       sub     sp,sp,0,32
