@@ -172,15 +172,16 @@ tget_exit:  ldqs    lr,5,sp,-8
             ;
 
 tput:       add     sp,sp,0,32
-            stqs    p0,5,sp,-24
+            stqs    x1,5,sp,-24
             stqs    lr,5,sp,-16
             
             stqs    x0,5,sp,-8          ; index
             mov     x0,p0
             stqs    p0,5,sp
             
-tput_loop:  ldc     p0,x0
-            bez     p0,tput_exit
+tput_loop:  ldc     x1,x0
+            bez     x1,tput_exit
+            mov     p0,x1
             call    cons_prt
             inc     x0
             br      tput_loop
@@ -189,7 +190,7 @@ tput_exit:  ldqs    lr,5,sp,-16
             ldqs    a0,5,sp
             ldqs    x0,5,sp,-8
             sub     rv,x0,a0
-            ldqs    p0,5,sp,-24
+            ldqs    x1,5,sp,-24
             sub     sp,sp,0,32
             ret
 
