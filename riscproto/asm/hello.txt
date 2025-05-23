@@ -167,11 +167,12 @@ tget_exit:  ldqs    lr,5,sp,-8
             ;
             ;       tput - write string to terminal
             ;
-            ;           p0*     address to read characters from
+            ;           p0      address to read characters from
             ;           rv      num characters printed
             ;
 
-tput:       add     sp,sp,0,24
+tput:       add     sp,sp,0,32
+            stqs    p0,5,sp,-24
             stqs    lr,5,sp,-16
             
             stqs    x0,5,sp,-8          ; index
@@ -188,7 +189,8 @@ tput_exit:  ldqs    lr,5,sp,-16
             ldqs    a0,5,sp
             ldqs    x0,5,sp,-8
             sub     rv,x0,a0
-            sub     sp,sp,0,24
+            ldqs    p0,5,sp,-24
+            sub     sp,sp,0,32
             ret
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
