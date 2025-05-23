@@ -5,6 +5,15 @@ ltext:
 ipl:        ldis    a0,ltext@h          ; establish addressability
             or      ct,a0,0,ltext@l
             
+            ldca    a1,ct,early_intr@ltext
+            mtcr    a1,ia
+
+            xor     p0,p0,p0
+
+scan_main:  ldq     0,p0
+            add     p0,p0,0,8
+            br      scan_main
+
             ldq     a0,ct,base0@ltext   ; load identity-mapped segment
             ldq     a1,ct,desc0@ltext
             mtcr    a0,b0
@@ -30,7 +39,11 @@ ipl:        ldis    a0,ltext@h          ; establish addressability
             ldcas   ct,4,0              ; set up and enter program
             mov     sp,0
             jmp     ct,start
-            
+
+early_intr: zero    384
+
+early_berr: rex     2
+
             align   0x10
             
 base0:      dq      0x0                 ; storage area
@@ -39,8 +52,8 @@ desc0:      dq      0x0FFFFFFFFFFFFF00  ; XW, max size
 base8:      dq      text                ; program segment
 desc8:      dq      0xFE00              ; X, 64K
 
-base9:      dq      0x1000              ; stack segment
-desc9:      dq      0x1D00              ; W, 8K
+base9:      dq      0x0                 ; stack segment
+desc9:      dq      0xFD00              ; W, 64K
 
 basea:      dq      0xFFFF000000000000  ; I/O area
 desca:      dq      0x0000FFFFFFFFFD18  ; WIC, I/O size
@@ -51,7 +64,26 @@ desca:      dq      0x0000FFFFFFFFFD18  ; WIC, I/O size
             
 text:       origin  0x0
 
-start:      ldca    a3,ct,intr@start
+start:      ldat    a4,ct,top_text@start
+            ldi     a0,0x7FF000
+            and     a1,a4,a0
+            ldca    x2,a1,0x1000        ; align to page boundary - page pool
+            mov     x3,p0               ; end of physical memory
+
+            mov     p0,x2
+            ldi     p2,1
+
+            ldi     p1,7
+            call    set_bit
+            ldi     p1,2
+            call    set_bit
+            ldi     p1,13
+            call    set_bit
+            ldi     p1,8
+            call    set_bit
+            ldq     x7,p0
+
+            ldca    a3,ct,intr@start
             mtcr    a3,ia
             mfcr    a1,psq
             or      a1,a1,0,1
@@ -160,6 +192,47 @@ tput_exit:  ldqs    lr,5,sp,-16
             ret
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;       get_bit - get bit from bitmap
+            ;
+            ;           p0      address of bitmap
+            ;           p1      index of bit
+            ;           rv      value of bit
+            ;
+
+get_bit:    shl     a0,p1,0,-3
+            add     a1,a0,p0            ; which byte to read
+            ldc     a2,a1               ; get byte
+            and     a3,p1,0,7
+            sub     a0,0,a3             ; shift amount
+            shl     a1,a2,a0
+            and     rv,a1,0,1           ; get bit
+            ret
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;       set_bit - get bit from bitmap
+            ;
+            ;           p0      address of bitmap
+            ;           p1      index of bit
+            ;           p2      new value of bit
+            ;
+
+set_bit:    shl     a0,p1,0,-3
+            add     a1,a0,p0            ; which byte to read
+            ldc     a2,a1               ; get byte
+            and     a3,p1,0,7
+            ldi     a4,1
+            shl     a0,a4,a3
+            sub     a5,0,a0,1           ; mask (mcom a5,a0)
+            hvc     4,a5
+            and     a6,a2,a5            ; clear bit
+            shl     a4,p2,a3
+            or      a2,a6,a4            ; set bit to desired value
+            stc     a2,a1
+            ret
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 cons_wait:  ldi     a5,1
             mfcr    a6,a5,psq
@@ -217,3 +290,4 @@ timer:      shl     x8,x9,0,63
 
 prompt:     asciz   "Echo ---> "
 
+top_text:
