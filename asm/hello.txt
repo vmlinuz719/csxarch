@@ -228,7 +228,6 @@ set_bit:    shl     a0,p1,0,-3
             ldi     a4,1
             shl     a0,a4,a3
             sub     a5,0,a0,1           ; mask (mcom a5,a0)
-            hvc     4,a5
             and     a6,a2,a5            ; clear bit
             shl     a4,p2,a3
             or      a2,a6,a4            ; set bit to desired value
