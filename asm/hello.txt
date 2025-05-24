@@ -67,15 +67,64 @@ text:       origin  0x0
 start:      ldat    a4,ct,top_text@start
             ldi     a0,0x7FF000
             and     a1,a4,a0
-            ldca    x2,a1,0x1000        ; align to page boundary - page pool
-            mov     x3,p0               ; end of physical memory
+            ldca    x0,a1,0x1000        ; 4k-aligned end of reserved area
+            mov     x1,p0               ; end of physical memory
             
-            mov     p0,x2
-            ldi     p1,7
-            ldi     p2,1
+            shl     x2,x1,0,-12         ; number of 4k blocks
+            
+            shl     x3,x2,0,-3          ; number of bitmap bytes
+            and     a0,x2,0,7
+            add     a1,x3,0,1
+            movne   x3,a0,a1            ; increment if not even multiple
+            
+            shl     x4,x3,0,-10         ; number of bitmap pages
+            ldi     a2,0x3FF
+            and     a0,x3,a2
+            add     a1,x4,0,1           ; increment if not even multiple
+            movne   x4,a0,a1
+            
+            shl     a0,x4,0,10
+            mcom    a1,a2
+            dec     a0
+            and     a2,a0,a1
+            or      a3,a2,0,0x100       ; segment descriptor for bitmap
+            mtcr    a3,d11
+            mtcr    x0,b11
+            
+            shl     x5,x0,0,-12         ; number of bits to reserve at start
+            xor     x3,x3,x3            ; loop counter
+            
+bmp_rs_low: ldcas   p0,7,0              ; address of bitmap
+            mov     p1,x3               ; bit to set
+            ldi     p2,1                ; set bit
+            inc     x3
             call    set_bit
+            sub     a0,x5,x3
+            bgz     a0,bmp_rs_low
+            
+            mov     x5,x2               ; high water mark
+            
+bmp_rs_mid: ldcas   p0,7,0              ; address of bitmap
+            mov     p1,x3               ; bit to set
+            xor     p2,p2,p2            ; clear bit
+            inc     x3
+            call    set_bit
+            sub     a0,x5,x3
+            bgz     a0,bmp_rs_mid
+            
+            shl     x5,x4,0,13          ; total bits in bitmap
+            sub     a0,x5,x3            ; pages * 1024 * 8
+            bez     a0,init_intr        ; we are done if nothing left
 
-            ldca    a3,ct,intr@start
+bmp_rs_end: ldcas   p0,7,0              ; address of bitmap
+            mov     p1,x3               ; bit to set
+            ldi     p2,1                ; set bit
+            inc     x3
+            call    set_bit
+            sub     a0,x5,x3
+            bgz     a0,bmp_rs_end
+
+init_intr:  ldca    a3,ct,intr@start
             mtcr    a3,ia
             mfcr    a1,psq
             or      a1,a1,0,1
@@ -83,14 +132,14 @@ start:      ldat    a4,ct,top_text@start
             ldi     a2,-1
             mtcr    a2,eim
 
-            ldi     a0,0x101            ; console on channel 0x101
+init_cons:  ldi     a0,0x101            ; console on channel 0x101
             ldi     a2,0xF7             ; echo all, destr backspace, intr all
             shl     a1,a0,0,32
             stcs    a2,6,a1,2           ; set control byte
             ldi     a3,0x101
             stqs    a3,6,a1,8           ; set vector
 
-            ldi     x9,0x3FFFFF         ; cylon
+init_timer: ldi     x9,0x3FFFFF         ; cylon
             define  timer_spec,0x000000100000002F
             ldgis   a0,timer_spec@gh
             ldca    a1,a0,timer_spec@gl
