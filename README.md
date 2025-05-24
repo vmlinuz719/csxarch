@@ -23,6 +23,3 @@ A: In order:
 - Link register
 - Selected general-purpose register, use up and down keys to select
 - Current selection index
-
-## Discord
-will return early 2025
