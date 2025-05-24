@@ -69,19 +69,11 @@ start:      ldat    a4,ct,top_text@start
             and     a1,a4,a0
             ldca    x2,a1,0x1000        ; align to page boundary - page pool
             mov     x3,p0               ; end of physical memory
-
+            
             mov     p0,x2
-            ldi     p2,1
-
             ldi     p1,7
+            ldi     p2,1
             call    set_bit
-            ldi     p1,2
-            call    set_bit
-            ldi     p1,13
-            call    set_bit
-            ldi     p1,8
-            call    set_bit
-            ldq     x7,p0
 
             ldca    a3,ct,intr@start
             mtcr    a3,ia
@@ -227,7 +219,7 @@ set_bit:    shl     a0,p1,0,-3
             and     a3,p1,0,7
             ldi     a4,1
             shl     a0,a4,a3
-            sub     a5,0,a0,1           ; mask (mcom a5,a0)
+            mcom    a5,a0               ; mask
             and     a6,a2,a5            ; clear bit
             shl     a4,p2,a3
             or      a2,a6,a4            ; set bit to desired value

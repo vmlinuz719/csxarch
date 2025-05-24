@@ -43,6 +43,8 @@ struct label_cmd_def {
 
 uint64_t asm_rr(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t asm_mv(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
+uint64_t asm_mneg(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
+uint64_t asm_mcom(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t asm_id(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t asm_br(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
 uint64_t asm_br_j(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err);
@@ -78,6 +80,8 @@ static struct instruction_def opcodes[] = {
     {"mov",     0, 0, 4, asm_mv},
     {"inc",     0, 0, 4, asm_id},
     {"sub",     0, 1, 4, asm_rr},
+    {"mcom",    0, 1, 4, asm_mcom},
+    {"mneg",    0, 1, 4, asm_mneg},
     {"dec",     0, 1, 4, asm_id},
     {"and",     0, 2, 4, asm_rr},
     {"or",      0, 3, 4, asm_rr},
@@ -482,6 +486,49 @@ uint64_t asm_mv(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err
 
     result |= (a & 0x1F) << 23;
     result |= (b & 0x1F) << 5;
+    return result;
+}
+
+uint64_t asm_mcom(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
+    uint32_t result = (opcode << 28) | (fn << 20);
+
+    char event[MAX_EVENT_LEN];
+    char *args[MAX_ARGS];
+    int got_args = get_args(ic->input, &ic->line, &ic->col, args, MAX_ARGS, event, MAX_EVENT_LEN);
+    if (got_args != 2) {
+        *err = -1;
+        return 0;
+    }
+
+    int a = 0, c = 0, d = 1;
+    
+    a = get_register_literal(args[0], err); if (*err) return 0;
+    c = get_register_literal(args[1], err); if (*err) return 0;
+
+    result |= (a & 0x1F) << 23;
+    result |= (c & 0x1F);
+    result |= (d & 0x3FF) << 10;
+    return result;
+}
+
+uint64_t asm_mneg(struct input_ctx *ic, uint64_t *pc, int opcode, int fn, int *err) {
+    uint32_t result = (opcode << 28) | (fn << 20);
+
+    char event[MAX_EVENT_LEN];
+    char *args[MAX_ARGS];
+    int got_args = get_args(ic->input, &ic->line, &ic->col, args, MAX_ARGS, event, MAX_EVENT_LEN);
+    if (got_args != 2) {
+        *err = -1;
+        return 0;
+    }
+
+    int a = 0, c = 0;
+    
+    a = get_register_literal(args[0], err); if (*err) return 0;
+    c = get_register_literal(args[1], err); if (*err) return 0;
+
+    result |= (a & 0x1F) << 23;
+    result |= (c & 0x1F);
     return result;
 }
 
