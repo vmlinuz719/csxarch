@@ -507,7 +507,7 @@ const char *abi_names[] = {
 
 const char *cr_names[] = {
     "PSQ", "APC", "APS", "ASP", NULL,
-    " IA", "EIM", "EIP", " FI", " FA", NULL, NULL
+    " IA", "EIM", "EIP", " FI", " FA", "TCR", NULL, NULL
 };
 
 static inline void print_regs(uint64_t *regs, const char *names[]) {
@@ -609,6 +609,10 @@ void simdbg_0(lcca_t *cpu, uint32_t inst) {
             if (!e && a == 6) {
                 putc('\n', stderr);
             }
+        } break;
+        
+        case 7: {
+            cpu->throttle = RC(inst);
         } break;
 
         case 31: {

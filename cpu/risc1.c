@@ -280,7 +280,7 @@ int main(int argc, char *argv[]) {
     mmio_unit_t mmio[4096];
     memset(mmio, 0, sizeof(mmio_unit_t) * 4096);
 
-    uint8_t *mem = malloc(4096 * 8193);
+    uint8_t *mem = malloc(4096 * 8192);
     bus.memory = mem;
     
     if (rom != NULL) {
@@ -288,7 +288,7 @@ int main(int argc, char *argv[]) {
         fclose(rom);
     }
     
-    bus.mem_limit = 4096 * 8193;
+    bus.mem_limit = 4096 * 8192;
     pthread_mutex_init(&cas_lock, NULL);
     bus.cas_lock = &cas_lock;
     bus.mmio = mmio;

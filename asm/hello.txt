@@ -114,7 +114,7 @@ bmp_rs_mid: ldcas   p0,7,0              ; address of bitmap
             
             shl     x5,x4,0,13          ; total bits in bitmap
             sub     a0,x5,x3            ; pages * 1024 * 8
-            bez     a0,init_intr        ; we are done if nothing left
+            bez     a0,bmp_r_done       ; we are done if nothing left
 
 bmp_rs_end: ldcas   p0,7,0              ; address of bitmap
             mov     p1,x3               ; bit to set
@@ -123,6 +123,18 @@ bmp_rs_end: ldcas   p0,7,0              ; address of bitmap
             call    set_bit
             sub     a0,x5,x3
             bgz     a0,bmp_rs_end
+
+bmp_r_done: xor     x0,x0,x0            ; total usable memory
+            xor     x3,x3,x3            ; loop counter
+            
+count_pg:   ldcas   p0,7,0
+            mov     p1,x3
+            call    get_bit
+            ldca    a0,x0,0x1000
+            moveq   x0,rv,a0
+            inc     x3
+            sub     a0,x5,x3
+            bgz     a0,count_pg
 
 init_intr:  ldca    a3,ct,intr@start
             mtcr    a3,ia
