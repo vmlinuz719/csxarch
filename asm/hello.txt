@@ -158,7 +158,7 @@ bmp_rs_bl:  ldcas   p0,7,0              ; address of bitmap
             ;
             ;           0       Segment descriptor of bitmap
             ;           16      Pointer to first free block
-            ;           24      Pointer to last free block
+            ;           24      Spinlock
             ;
             ;       Structure of a free block:
             ;
@@ -170,7 +170,7 @@ bmp_rs_bl:  ldcas   p0,7,0              ; address of bitmap
 
 init_free:  shl     a0,x6,0,12          ; address of first free block
             stqs    a0,5,sp,16
-            stqs    a0,5,sp,24          ; also last
+            sts     0,5,sp,24           ; initialize spinlock
             ldca    sp,sp,32
             
             shl     a1,x7,0,12          ; first block size
@@ -194,6 +194,11 @@ init_cons:  ldi     a0,0x101            ; console on channel 0x101
             stcs    a2,6,a1,2           ; set control byte
             ldi     a3,0x101
             stqs    a3,6,a1,8           ; set vector
+
+            hvc     7,1                 ; TEST get_main
+            ldi     p0,32
+            call    get_main
+            hvc     7,0
 
 init_timer: ldi     x9,0x3FFFFF         ; cylon
             define  timer_spec,0x000000100000002F
@@ -333,7 +338,139 @@ set_bit:    shl     a0,p1,0,-2
             stc     a2,a1
             ret
 
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;       get_main - get blocks of main memory
+            ;
+            ;           p0      requested size, in 4k clusters
+            ;           rv      address of allocated block on success
+            ;                   0 on failure
+            ;
 
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;       Step 0: Acquire spinlock
+            ;
+
+get_main:   lds     a0,5,0,24
+            bnz     a0,get_main
+            
+            mfcr    a1,psq
+            and     a2,a1,0,-2
+            mtcr    a2,psq
+            ldi     a3,1
+            sts     a3,5,0,24
+            mtcr    a1,psq
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;       Step 1: Scan for a suitable sized block on the free list
+            ;
+
+            ldqs    a0,5,0,16
+            bez     a0,gm_fail
+
+            shl     a3,p0,0,12
+
+gm_scan:    ldq     a1,a0
+            sub     a2,a3,a1
+            blez    a2,gm_alloc         ; got it if a3 (request) <= a1 (size)
+            
+            ldq     a0,a0,16            ; next ptr
+            bez     a0,gm_fail
+            br      gm_scan
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;       Step 2: With a suitable block found, update the bitmap
+            ;
+
+gm_alloc:   stqs    lr,5,sp
+            stqs    x0,5,sp,8
+            shl     a1,a0,0,-12
+            add     x0,a1,p0            ; limit
+            stqs    x1,5,sp,16
+            add     x1,a1,0,1           ; start
+            stqs    x2,5,sp,24
+            mov     x2,a0
+            add     sp,sp,0,32
+            
+            ldqs    p0,5,0
+            sub     p1,x1,0,1
+            ldi     p2,2
+            call    set_bit             ; mark first block as StartAllocated
+            
+            br      gm_alloc_e
+            
+gm_alloc_l: ldqs    p0,5,0
+            mov     p1,x1
+            ldi     p2,1
+            call    set_bit             ; mark subsequent blocks Allocated
+            inc     x1
+gm_alloc_e: sub     a1,x0,x1
+            bgz     a1,gm_alloc_l
+            
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;       Step 3: Check if we are getting less than the request size
+            ;               Note X2 contains the address of the block we got
+            ;
+            
+            shl     a0,x0,0,12
+            sub     x1,a0,x2            ; recover requested size to X1
+            ldq     a2,x2               ; size we got
+            sub     a3,a2,x1
+            bgz     a3,gm_sz_lt         ; if we got a block bigger than needed
+            
+gm_sz_eq:   ldq     a0,x2,8             ; get previous ptr
+            bez     a0,gm_sz_eq_n       ; nothing to do if null
+            
+            ldq     a1,x2,16            ; get our next pointer
+            stq     a1,a0,16            ; prev->next = next
+
+gm_sz_eq_n: ldq     x1,x2,16            ; get next ptr
+            bez     x1,gm_sz_done       ; nothing to do if null
+            
+            ldq     a1,x2,8             ; get our previous pointer
+            stq     a1,x1,8             ; next->prev = prev
+
+            br      gm_sz_done
+
+gm_sz_lt:   ; TODO: break the block if it's too big
+            br      gm_fail
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;       Step 4: Check if we need to update the first pointer
+            ;               X1 contains ptr to next block, X2 current
+            ;
+
+gm_sz_done: ldqs    a0,5,0,16           ; get first ptr
+            sub     a1,a0,x2
+            moveq   a0,a1,x1
+            stqs    a0,5,0,16
+
+            sub     sp,sp,0,32
+            ldqs    lr,5,sp
+            ldqs    x0,5,sp,8
+            ldqs    x1,5,sp,16
+            mov     rv,x2
+            ldqs    x2,5,sp,24
+            br      gm_exit
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;       Oh no!!!!!!!!!!!!!
+            ;
+
+gm_fail:    xor     rv,rv,rv
+
+gm_exit:    mfcr    a1,psq
+            and     a2,a1,0,-2
+            mtcr    a2,psq
+            sts     0,5,0,24
+            mtcr    a1,psq
+            ret
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
