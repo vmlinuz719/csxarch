@@ -102,6 +102,7 @@ bmp_rs_low: ldcas   p0,7,0              ; address of bitmap
             sub     a0,x5,x3
             bgz     a0,bmp_rs_low
             
+            mov     x6,x3               ; save first free page
             mov     x5,x2               ; high water mark
             
 bmp_rs_mid: ldcas   p0,7,0              ; address of bitmap
@@ -124,7 +125,12 @@ bmp_rs_end: ldcas   p0,7,0              ; address of bitmap
             sub     a0,x5,x3
             bgz     a0,bmp_rs_end
 
-bmp_r_done:
+bmp_r_done: mfcr    a0,b11              ; save bitmap segment
+            mfcr    a1,d11
+            stqs    a0,5,sp
+            stqs    a1,5,sp,8
+            stqs    x6,5,sp,16          ; save first free unit
+            add     sp,sp,0,24
 
 init_intr:  ldca    a3,ct,intr@start
             mtcr    a3,ia
