@@ -154,7 +154,7 @@ bmp_rs_bl:  ldcas   p0,7,0              ; address of bitmap
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             ;
-            ;       Structure of allocation manager (kernel SP + 0):
+            ;       Structure of allocation manager (kernel stack segment + 0):
             ;
             ;           0       Segment descriptor of bitmap
             ;           16      Pointer to first free block
