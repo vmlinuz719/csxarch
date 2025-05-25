@@ -72,8 +72,8 @@ start:      ldat    a4,ct,top_text@start
             
             shl     x2,x1,0,-12         ; number of 4k blocks
             
-            shl     x3,x2,0,-3          ; number of bitmap bytes
-            and     a0,x2,0,7
+            shl     x3,x2,0,-2          ; number of bitmap bytes
+            and     a0,x2,0,7           ; (2 bits per allocation)
             add     a1,x3,0,1
             movne   x3,a0,a1            ; increment if not even multiple
             
@@ -96,7 +96,7 @@ start:      ldat    a4,ct,top_text@start
             
 bmp_rs_low: ldcas   p0,7,0              ; address of bitmap
             mov     p1,x3               ; bit to set
-            ldi     p2,1                ; set bit
+            ldi     p2,3                ; set bit (Reserved)
             inc     x3
             call    set_bit
             sub     a0,x5,x3
@@ -112,29 +112,19 @@ bmp_rs_mid: ldcas   p0,7,0              ; address of bitmap
             sub     a0,x5,x3
             bgz     a0,bmp_rs_mid
             
-            shl     x5,x4,0,13          ; total bits in bitmap
-            sub     a0,x5,x3            ; pages * 1024 * 8
+            shl     x5,x4,0,12          ; total 2-bits in bitmap
+            sub     a0,x5,x3            ; pages * 1024 * 4
             bez     a0,bmp_r_done       ; we are done if nothing left
 
 bmp_rs_end: ldcas   p0,7,0              ; address of bitmap
             mov     p1,x3               ; bit to set
-            ldi     p2,1                ; set bit
+            ldi     p2,3                ; set bit (Reserved)
             inc     x3
             call    set_bit
             sub     a0,x5,x3
             bgz     a0,bmp_rs_end
 
-bmp_r_done: xor     x0,x0,x0            ; total usable memory
-            xor     x3,x3,x3            ; loop counter
-            
-count_pg:   ldcas   p0,7,0
-            mov     p1,x3
-            call    get_bit
-            ldca    a0,x0,0x1000
-            moveq   x0,rv,a0
-            inc     x3
-            sub     a0,x5,x3
-            bgz     a0,count_pg
+bmp_r_done:
 
 init_intr:  ldca    a3,ct,intr@start
             mtcr    a3,ia
@@ -256,13 +246,14 @@ tput_exit:  ldqs    lr,5,sp,-16
             ;           rv      value of bit
             ;
 
-get_bit:    shl     a0,p1,0,-3
+get_bit:    shl     a0,p1,0,-2
             add     a1,a0,p0            ; which byte to read
             ldc     a2,a1               ; get byte
-            and     a3,p1,0,7
+            and     a4,p1,0,3
+            shl     a3,a4,0,1
             sub     a0,0,a3             ; shift amount
             shl     a1,a2,a0
-            and     rv,a1,0,1           ; get bit
+            and     rv,a1,0,3           ; get bit
             ret
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -274,11 +265,12 @@ get_bit:    shl     a0,p1,0,-3
             ;           p2      new value of bit
             ;
 
-set_bit:    shl     a0,p1,0,-3
+set_bit:    shl     a0,p1,0,-2
             add     a1,a0,p0            ; which byte to read
             ldc     a2,a1               ; get byte
-            and     a3,p1,0,7
-            ldi     a4,1
+            and     a4,p1,0,3
+            shl     a3,a4,0,1
+            ldi     a4,3
             shl     a0,a4,a3
             mcom    a5,a0               ; mask
             and     a6,a2,a5            ; clear bit
