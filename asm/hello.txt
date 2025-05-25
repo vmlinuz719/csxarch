@@ -178,7 +178,7 @@ echo_loop:  ldca    p0,ct,prompt@start
             sub     sp,sp,0,128
             br      echo_loop
 
-halt:       sub     sp,sp,0,32
+halt:       sub     sp,sp,0,128
             ldi     a0,0xcc
             shl     a1,a0,0,6
             or      a2,a1,0,4
