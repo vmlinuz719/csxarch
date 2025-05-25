@@ -103,6 +103,7 @@ bmp_rs_low: ldcas   p0,7,0              ; address of bitmap
             bgz     a0,bmp_rs_low
             
             mov     x6,x3               ; save first free page
+            sub     x7,x2,x5            ; subtract reserved
             mov     x5,x2               ; high water mark
             
 bmp_rs_mid: ldcas   p0,7,0              ; address of bitmap
@@ -136,10 +137,10 @@ bmp_rs_bmp: mfcr    a0,b11              ; save bitmap segment
             
             shl     a0,a3,0,-12         ; size of bitmap in allocation units
             ldi     a1,0xFFF
-            mcom    a2,a1
-            and     a4,a3,a2
+            and     a4,a3,a1
             add     a5,a0,0,1
             movne   a0,a4,a5            ; add one if uneven multiple
+            sub     x7,x7,a0            ; subtract reserved
             
             add     x0,x6,a0            ; end
             
@@ -150,9 +151,34 @@ bmp_rs_bl:  ldcas   p0,7,0              ; address of bitmap
             call    set_bit
             sub     a0,x0,x6
             bgz     a0,bmp_rs_bl
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;       Structure of allocation manager (kernel SP + 0):
+            ;
+            ;           0       Segment descriptor of bitmap
+            ;           16      Pointer to first free block
+            ;           24      Pointer to last free block
+            ;
+            ;       Structure of a free block:
+            ;
+            ;           0       Size in bytes (4k aligned)
+            ;           8       Previous block (NULL if first)
+            ;           16      Next block (NULL) if last
+            ;           size-8: Size in bytes, again (4k aligned)
+            ;
+
+init_free:  shl     a0,x6,0,12          ; address of first free block
+            stqs    a0,5,sp,16
+            stqs    a0,5,sp,24          ; also last
+            ldca    sp,sp,32
             
-            stqs    x6,5,sp,16          ; save first free unit
-            add     sp,sp,0,24
+            shl     a1,x7,0,12          ; first block size
+            stq     a1,a0               ; save to block header
+            add     a2,a0,a1,-8
+            stq     a1,a2               ; save to block footer
+            stq     0,a0,8              ; prev = NULL
+            stq     0,a0,16             ; next = NULL
 
 init_intr:  ldca    a3,ct,intr@start
             mtcr    a3,ia
@@ -306,6 +332,8 @@ set_bit:    shl     a0,p1,0,-2
             or      a2,a6,a4            ; set bit to desired value
             stc     a2,a1
             ret
+
+
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
