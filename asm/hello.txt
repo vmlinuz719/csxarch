@@ -500,11 +500,7 @@ get_span:   shl     a0,p0,0,-12
             ldi     x1,1                ; counter
             stqs    lr,5,sp
             stqs    x2,5,sp,24          ; bit limit
-            ldqs    a0,5,0,8
-            ldi     a1,0x3FF
-            or      a2,a0,a1
-            inc     a2
-            shl     x2,a2,0,3
+            mov     x2,a5
             add     sp,sp,0,32
             
             ldqs    p0,5,0
