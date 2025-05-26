@@ -478,6 +478,18 @@ gm_exit:    mfcr    a1,psq
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             ;
+            ;       get_p_free - return the entry in the free list immediately
+            ;                    before the address specified
+            ;
+            ;           p0      address
+            ;           rv      start of previous free block
+            ;                   0 on failure
+            ;
+
+; TODO: this
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
             ;       get_span - return the size of an allocation
             ;
             ;           p0      address of allocation
