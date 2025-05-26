@@ -333,14 +333,14 @@ set_bit:    shl     a0,p1,0,-2
             stc     a2,a1
             ret
 
-            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-            ;
-            ;       get_main - get blocks of main memory
-            ;
-            ;           p0      requested size, in 4k clusters
-            ;           rv      address of allocated block on success
-            ;                   0 on failure
-            ;
+	        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	        ;
+	        ;       get_main - get blocks of main memory
+	        ;
+	        ;           p0      requested size, in 4k clusters
+	        ;           rv      address of allocated block on success
+	        ;                   0 on failure
+	        ;
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             ;
@@ -475,6 +475,73 @@ gm_exit:    mfcr    a1,psq
             sts     0,5,0,24
             mtcr    a1,psq
             ret
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;       get_span - return the size of an allocation
+            ;
+            ;           p0      address of allocation
+            ;           rv      size in 4k clusters
+            ;                   0 on failure
+            ;
+
+get_span:   shl     a0,p0,0,-12
+            ldqs    a1,5,0,8
+            ldi     a2,0x3FF
+            or      a4,a1,a2
+            inc     a4
+            shl     a5,a4,0,3
+            sub     a3,a5,a0            ; number of bits - selected bit
+            blez    a3,gs_fail          ; do not overrun end of bitmap
+            
+            stqs    x0,5,sp,8
+            mov     x0,a0               ; start bit
+            stqs    x1,5,sp,16
+            ldi     x1,1                ; counter
+            stqs    lr,5,sp
+            stqs    x2,5,sp,24          ; bit limit
+            ldqs    a0,5,0,8
+            ldi     a1,0x3FF
+            or      a2,a0,a1
+            inc     a2
+            shl     x2,a2,0,3
+            add     sp,sp,0,32
+            
+            ldqs    p0,5,0
+            mov     p1,x0
+            call    get_bit
+            sub     a0,rv,0,2
+            bnz     a0,gs_f_late
+
+gs_loop:    add     a5,x0,x1
+            sub     a3,x2,a5
+            blez    a3,gs_loop_e        ; do not overrun end of bitmap !!
+            
+            ldqs    p0,5,0
+            add     p1,x0,x1
+            call    get_bit
+            sub     a0,rv,0,1
+            bnz     a0,gs_loop_e
+            inc     x1
+            br      gs_loop
+            
+gs_loop_e:  sub     sp,sp,0,32
+            ldqs    x0,5,sp,8
+            mov     rv,x1
+            ldqs    x1,5,sp,16
+            ldqs    lr,5,sp
+            stqs    x2,5,sp,24
+            br      gs_exit
+
+gs_f_late:  sub     sp,sp,0,32
+            ldqs    lr,5,sp
+            ldqs    x0,5,sp,8
+            ldqs    x1,5,sp,16
+            ldqs    x2,5,sp,24
+            
+gs_fail:    xor     rv,rv,rv
+
+gs_exit:    ret
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
