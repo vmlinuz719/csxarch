@@ -195,11 +195,6 @@ init_cons:  ldi     a0,0x101            ; console on channel 0x101
             ldi     a3,0x101
             stqs    a3,6,a1,8           ; set vector
 
-            hvc     7,1                 ; TEST get_main
-            ldi     p0,32
-            call    get_main
-            hvc     7,0
-
 init_timer: ldi     x9,0x3FFFFF         ; cylon
             define  timer_spec,0x000000100000002F
             ldgis   a0,timer_spec@gh
@@ -436,8 +431,17 @@ gm_sz_eq_n: ldq     x1,x2,16            ; get next ptr
 
             br      gm_sz_done
 
-gm_sz_lt:   ; TODO: break the block if it's too big
-            br      gm_fail
+gm_sz_lt:   ldq     a1,x2,8             ; get our previous ptr
+            ldq     a2,x2,16            ; next ptr
+            ldq     a3,x2               ; size
+            add     a0,x2,x1            ; start of new block
+            sub     a4,a3,x1            ; new size
+            stq     a1,a0,8
+            stq     a2,a0,16
+            stq     a4,a0
+            add     a1,a0,a4,-8
+            stq     a4,a1
+            mov     x1,a0
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             ;
