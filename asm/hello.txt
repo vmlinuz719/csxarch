@@ -203,25 +203,6 @@ init_timer: ldi     x9,0x3FFFFF         ; cylon
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-            ldi     p0,1
-            call    get_main
-            mov     x0,rv
-            ldi     p0,1
-            call    get_main
-            mov     x1,rv
-            ldi     p0,1
-            call    get_main
-            mov     x2,rv
-
-            mov     p0,x1
-            call    free_main
-            mov     p0,x2
-            call    free_main
-            mov     p0,x0
-            call    free_main
-
-            call    debug_fl
-
 echo_loop:  ldca    p0,ct,prompt@start
             call    tput
             
@@ -568,7 +549,8 @@ fm_fl_done: shl     a0,x1,0,12
             stq     a0,a1
             sub     sp,sp,0,8
             ldqs    x2,5,sp
-            call    fuse_free
+            call    fuse_right
+            call    fuse_left
             mov     rv,x1
             br      fm_exit
 
@@ -587,12 +569,41 @@ fm_exit:    sub     sp,sp,0,24
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             ;
-            ;       fuse_free - consolidate adjacent free blocks
+            ;       fuse_left - consolidate adjacent free blocks
             ;
             ;           p0      address of free block
             ;
 
-fuse_free:  ret
+fuse_left:  ldq     p0,p0,8
+            bez     p0,fuse_r_end
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;       fuse_right - consolidate adjacent free blocks
+            ;
+            ;           p0      address of free block
+            ;
+
+fuse_right: ldq     a2,p0,16            ; check next
+            bez     a2,fuse_r_end
+
+            ldq     a0,p0
+            add     a3,a0,p0
+            sub     a4,a3,a2
+            bnz     a4,fuse_r_end       ; only fuse adjacent blocks
+
+            ldq     a5,a2,16            ; next->next
+            bez     a5,fuse_r_c
+            stq     p0,a5,8             ; next->next->prev = current
+
+fuse_r_c:   stq     a5,p0,16            ; next = next->next
+            ldq     a3,a2
+            add     a1,a0,a3            ; new size
+            stq     a1,p0
+            add     a2,p0,a1,-8
+            stq     a1,a2
+
+fuse_r_end: ret
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             ;
@@ -683,6 +694,20 @@ gs_fail:    xor     rv,rv,rv
 
 gs_exit:    ret
 
+debug_fl:   ldqs    a0,5,0,16
+
+debug_fl_l: hvc     4,a0
+            ldq     a1,a0
+            hvc     4,a1
+            ldq     a1,a0,8
+            hvc     4,a1
+            ldq     a1,a0,16
+            hvc     4,a1
+            ldq     a0,a0,16
+            bnz     a0,debug_fl_l
+            hvc     4,a0
+            ret
+
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 cons_wait:  ldi     a5,1
@@ -736,21 +761,6 @@ timer:      shl     x8,x9,0,63
             mtcr    x8,tcr
 
             rex     0
-
-
-debug_fl:   ldqs    a0,5,0,16
-
-debug_fl_l: hvc     4,a0
-            ldq     a1,a0
-            hvc     4,a1
-            ldq     a1,a0,8
-            hvc     4,a1
-            ldq     a1,a0,16
-            hvc     4,a1
-            ldq     a0,a0,16
-            bnz     a0,debug_fl_l
-            hvc     4,a0
-            ret
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
