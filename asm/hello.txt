@@ -205,22 +205,21 @@ init_timer: ldi     x9,0x3FFFFF         ; cylon
 
             ldi     p0,1
             call    get_main
+            mov     x0,rv
+            ldi     p0,1
+            call    get_main
+            mov     x1,rv
             ldi     p0,1
             call    get_main
             mov     x2,rv
-            ldi     p0,1
-            call    get_main
 
+            mov     p0,x1
+            call    free_main
             mov     p0,x2
             call    free_main
-            
-            call    debug_fl
-
-            ldi     p0,1
-            call    get_main
-            mov     p0,rv
+            mov     p0,x0
             call    free_main
-            
+
             call    debug_fl
 
 echo_loop:  ldca    p0,ct,prompt@start
@@ -550,6 +549,7 @@ fm_flist:   ldqs    a0,5,0,16
 
             ldq     a0,rv,16
             stq     x0,rv,16            ; prev->next = current
+            stq     rv,x0,8
             stq     a0,x0,16            ; current->next = old prev->next
             bez     a0,fm_fl_done
             stq     x0,a0,8             ; prev->next->prev = current
@@ -568,6 +568,7 @@ fm_fl_done: shl     a0,x1,0,12
             stq     a0,a1
             sub     sp,sp,0,8
             ldqs    x2,5,sp
+            call    fuse_free
             mov     rv,x1
             br      fm_exit
 
@@ -583,6 +584,15 @@ fm_exit:    sub     sp,sp,0,24
             sts     0,5,0,24
             mtcr    a1,psq
             ret
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;       fuse_free - consolidate adjacent free blocks
+            ;
+            ;           p0      address of free block
+            ;
+
+fuse_free:  ret
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             ;
@@ -732,6 +742,10 @@ debug_fl:   ldqs    a0,5,0,16
 
 debug_fl_l: hvc     4,a0
             ldq     a1,a0
+            hvc     4,a1
+            ldq     a1,a0,8
+            hvc     4,a1
+            ldq     a1,a0,16
             hvc     4,a1
             ldq     a0,a0,16
             bnz     a0,debug_fl_l
