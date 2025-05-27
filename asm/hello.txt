@@ -462,7 +462,9 @@ gm_sz_lt:   ldq     a1,x2,8             ; get our previous ptr
             add     a3,a0,a4,-8
             stq     a4,a3
             mov     x1,a0
-            bez     a1,gm_sz_done
+            bez     a2,gm_sz_lt_p
+            stq     a0,a2,8
+gm_sz_lt_p: bez     a1,gm_sz_done
             stq     a0,a1,16
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
