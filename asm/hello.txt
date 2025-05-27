@@ -486,7 +486,21 @@ gm_exit:    mfcr    a1,psq
             ;                   0 on failure
             ;
 
-; TODO: this
+get_p_free: ldqs    rv,5,0,16           ; get first ptr
+            bez     rv,gp_fail          ; fail if null
+            sub     a1,rv,p0
+            bgz     a1,gp_fail          ; fail if no left neighbor
+
+gp_loop:    ldq     a2,rv,16            ; get next
+            bez     a2,gp_exit          ; exit if nothing left in free list
+            sub     a1,a2,p0
+            bgz     a1,gp_exit          ; exit if next > request
+            mov     rv,a2
+            br      gp_loop
+
+gp_fail:    xor     rv,rv,rv
+
+gp_exit:    ret
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             ;
