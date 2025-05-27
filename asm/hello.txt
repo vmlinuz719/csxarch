@@ -203,6 +203,26 @@ init_timer: ldi     x9,0x3FFFFF         ; cylon
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+            ldi     p0,1
+            call    get_main
+            ldi     p0,1
+            call    get_main
+            mov     x2,rv
+            ldi     p0,1
+            call    get_main
+
+            mov     p0,x2
+            call    free_main
+            
+            call    debug_fl
+
+            ldi     p0,1
+            call    get_main
+            mov     p0,rv
+            call    free_main
+            
+            call    debug_fl
+
 echo_loop:  ldca    p0,ct,prompt@start
             call    tput
             
@@ -439,9 +459,11 @@ gm_sz_lt:   ldq     a1,x2,8             ; get our previous ptr
             stq     a1,a0,8
             stq     a2,a0,16
             stq     a4,a0
-            add     a1,a0,a4,-8
-            stq     a4,a1
+            add     a3,a0,a4,-8
+            stq     a4,a3
             mov     x1,a0
+            bez     a1,gm_sz_done
+            stq     a0,a1,16
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             ;
@@ -478,6 +500,90 @@ gm_exit:    mfcr    a1,psq
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
             ;
+            ;       free_main - release allocated clusters
+            ;
+            ;           p0      address
+            ;           rv      number of 4k clusters freed
+            ;                   0 on failure
+            ;
+
+free_main:  lds     a0,5,0,24           ; get spinlock
+            bnz     a0,free_main
+            
+            mfcr    a1,psq
+            and     a2,a1,0,-2
+            mtcr    a2,psq
+            ldi     a3,1
+            sts     a3,5,0,24
+            mtcr    a1,psq
+
+            stqs    lr,5,sp
+            stqs    x0,5,sp,8
+            mov     x0,p0               ; block to free
+            stqs    x1,5,sp,16          ; size in 4k clusters
+            add     sp,sp,0,24
+            call    get_span
+            bez     rv,fm_fail
+            mov     x1,rv
+
+            stqs    x2,5,sp
+            add     sp,sp,0,8
+            xor     x2,x2,x2            ; loop counter
+
+fm_bmp_l:   shl     a0,x0,0,-12
+            add     p1,a0,x2
+            inc     x2
+            ldqs    p0,5,0
+            xor     p2,p2,p2
+            call    set_bit
+            sub     a0,x1,x2
+            bgz     a0,fm_bmp_l
+
+fm_flist:   ldqs    a0,5,0,16
+            bez     a0,fm_fl_nol
+
+            mov     p0,x0
+            call    get_p_free
+            bez     rv,fm_fl_nol
+
+            ldq     a0,rv,16
+            stq     x0,rv,16            ; prev->next = current
+            stq     a0,x0,16            ; current->next = old prev->next
+            bez     a0,fm_fl_done
+            stq     x0,a0,8             ; prev->next->prev = current
+            br      fm_fl_done
+
+fm_fl_nol:  ldqs    a0,5,0,16
+            stq     0,x0,8              ; current->prev = 0
+            stq     a0,x0,16            ; current->next = old start
+            stqs    x0,5,0,16           ; start = current
+            bez     a0,fm_fl_done
+            stq     x0,a0,8
+
+fm_fl_done: shl     a0,x1,0,12
+            stq     a0,x0
+            add     a1,x0,a0,-8
+            stq     a0,a1
+            sub     sp,sp,0,8
+            ldqs    x2,5,sp
+            mov     rv,x1
+            br      fm_exit
+
+fm_fail:    xor     rv,rv,rv
+
+fm_exit:    sub     sp,sp,0,24
+            ldqs    lr,5,sp
+            ldqs    x0,5,sp,8
+            ldqs    x1,5,sp,16
+            mfcr    a1,psq
+            and     a2,a1,0,-2
+            mtcr    a2,psq
+            sts     0,5,0,24
+            mtcr    a1,psq
+            ret
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
             ;       get_p_free - return the entry in the free list immediately
             ;                    before the address specified
             ;
@@ -488,8 +594,8 @@ gm_exit:    mfcr    a1,psq
 
 get_p_free: ldqs    rv,5,0,16           ; get first ptr
             bez     rv,gp_fail          ; fail if null
-            sub     a1,rv,p0
-            bgz     a1,gp_fail          ; fail if no left neighbor
+            sub     a1,p0,rv
+            blez    a1,gp_fail          ; fail if no left neighbor
 
 gp_loop:    ldq     a2,rv,16            ; get next
             bez     a2,gp_exit          ; exit if nothing left in free list
@@ -552,7 +658,7 @@ gs_loop_e:  sub     sp,sp,0,32
             mov     rv,x1
             ldqs    x1,5,sp,16
             ldqs    lr,5,sp
-            stqs    x2,5,sp,24
+            ldqs    x2,5,sp,24
             br      gs_exit
 
 gs_f_late:  sub     sp,sp,0,32
@@ -618,6 +724,17 @@ timer:      shl     x8,x9,0,63
             mtcr    x8,tcr
 
             rex     0
+
+
+debug_fl:   ldqs    a0,5,0,16
+
+debug_fl_l: hvc     4,a0
+            ldq     a1,a0
+            hvc     4,a1
+            ldq     a0,a0,16
+            bnz     a0,debug_fl_l
+            hvc     4,a0
+            ret
 
             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
