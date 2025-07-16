@@ -1,3 +1,5 @@
+.vscode/
+
 # Prerequisites
 *.d
 
@@ -6,7 +8,8 @@
 *.ko
 *.obj
 *.elf
-obj/*
+obj/
+dbg/
 
 # Linker output
 *.ilk
@@ -51,4 +54,3 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
-

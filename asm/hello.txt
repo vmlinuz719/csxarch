@@ -1,0 +1,769 @@
+            origin  0x10000
+
+ltext:
+
+ipl:        ldis    a0,ltext@h          ; establish addressability
+            or      ct,a0,0,ltext@l
+            
+            ldca    a1,ct,early_intr@ltext
+            mtcr    a1,ia
+
+            xor     p0,p0,p0
+
+scan_main:  ldq     0,p0
+            add     p0,p0,0,8
+            br      scan_main
+
+            ldq     a0,ct,base0@ltext   ; load identity-mapped segment
+            ldq     a1,ct,desc0@ltext
+            mtcr    a0,b0
+            mtcr    a1,d0
+            
+            ldq     a2,ct,base8@ltext   ; load supervisor segments
+            ldq     a3,ct,desc8@ltext
+            mtcr    a2,b8
+            mtcr    a3,d8
+            ldq     a0,ct,base9@ltext
+            ldq     a1,ct,desc9@ltext
+            ldq     a2,ct,basea@ltext
+            ldq     a3,ct,desca@ltext
+            mtcr    a0,b9
+            mtcr    a1,d9
+            mtcr    a2,b10
+            mtcr    a3,d10
+            
+            mfcr    a0,psq              ; enable address translation
+            ldi     a1,64
+            mtcr    a0,a1,psq
+            
+            ldcas   ct,4,0              ; set up and enter program
+            mov     sp,0
+            jmp     ct,start
+
+early_intr: zero    384
+
+early_berr: rex     2
+
+            align   0x10
+            
+base0:      dq      0x0                 ; storage area
+desc0:      dq      0x0FFFFFFFFFFFFF00  ; XW, max size
+
+base8:      dq      text                ; program segment
+desc8:      dq      0xFE00              ; X, 64K
+
+base9:      dq      0x0                 ; stack segment
+desc9:      dq      0xFD00              ; W, 64K
+
+basea:      dq      0xFFFF000000000000  ; I/O area
+desca:      dq      0x0000FFFFFFFFFD18  ; WIC, I/O size
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+            align   0x400
+            
+text:       origin  0x0
+
+start:      ldat    a4,ct,top_text@start
+            ldi     a0,0x7FF000
+            and     a1,a4,a0
+            ldca    x0,a1,0x1000        ; 4k-aligned end of reserved area
+            mov     x1,p0               ; end of physical memory
+            
+            shl     x2,x1,0,-12         ; number of 4k blocks
+            
+            shl     x3,x2,0,-2          ; number of bitmap bytes
+            and     a0,x2,0,7           ; (2 bits per allocation)
+            add     a1,x3,0,1
+            movne   x3,a0,a1            ; increment if not even multiple
+            
+            shl     x4,x3,0,-10         ; number of bitmap pages
+            ldi     a2,0x3FF
+            and     a0,x3,a2
+            add     a1,x4,0,1           ; increment if not even multiple
+            movne   x4,a0,a1
+            
+            shl     a0,x4,0,10
+            mcom    a1,a2
+            dec     a0
+            and     a2,a0,a1
+            or      a3,a2,0,0x100       ; segment descriptor for bitmap
+            mtcr    a3,d11
+            mtcr    x0,b11
+            
+            shl     x5,x0,0,-12         ; number of bits to reserve at start
+            xor     x3,x3,x3            ; loop counter
+            
+bmp_rs_low: ldcas   p0,7,0              ; address of bitmap
+            mov     p1,x3               ; bit to set
+            ldi     p2,3                ; set bit (Reserved)
+            inc     x3
+            call    set_bit
+            sub     a0,x5,x3
+            bgz     a0,bmp_rs_low
+            
+            mov     x6,x3               ; save first free page
+            sub     x7,x2,x5            ; subtract reserved
+            mov     x5,x2               ; high water mark
+            
+bmp_rs_mid: ldcas   p0,7,0              ; address of bitmap
+            mov     p1,x3               ; bit to set
+            xor     p2,p2,p2            ; clear bit
+            inc     x3
+            call    set_bit
+            sub     a0,x5,x3
+            bgz     a0,bmp_rs_mid
+            
+            shl     x5,x4,0,12          ; total 2-bits in bitmap
+            sub     a0,x5,x3            ; pages * 1024 * 4
+            bez     a0,bmp_rs_bmp       ; we are done if nothing left
+
+bmp_rs_end: ldcas   p0,7,0              ; address of bitmap
+            mov     p1,x3               ; bit to set
+            ldi     p2,3                ; set bit (Reserved)
+            inc     x3
+            call    set_bit
+            sub     a0,x5,x3
+            bgz     a0,bmp_rs_end
+
+bmp_rs_bmp: mfcr    a0,b11              ; save bitmap segment
+            mfcr    a1,d11
+            stqs    a0,5,sp
+            stqs    a1,5,sp,8
+            
+            ldi     a2,0x3FF
+            or      a3,a1,a2
+            inc     a3                  ; size of bitmap in bytes
+            
+            shl     a0,a3,0,-12         ; size of bitmap in allocation units
+            ldi     a1,0xFFF
+            and     a4,a3,a1
+            add     a5,a0,0,1
+            movne   a0,a4,a5            ; add one if uneven multiple
+            sub     x7,x7,a0            ; subtract reserved
+            
+            add     x0,x6,a0            ; end
+            
+bmp_rs_bl:  ldcas   p0,7,0              ; address of bitmap
+            mov     p1,x6               ; bit to set
+            ldi     p2,3                ; set bit (Reserved)
+            inc     x6
+            call    set_bit
+            sub     a0,x0,x6
+            bgz     a0,bmp_rs_bl
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;       Structure of allocation manager (kernel stack segment + 0):
+            ;
+            ;           0       Segment descriptor of bitmap
+            ;           16      Pointer to first free block
+            ;           24      Spinlock
+            ;
+            ;       Structure of a free block:
+            ;
+            ;           0       Size in bytes (4k aligned)
+            ;           8       Previous block (NULL if first)
+            ;           16      Next block (NULL) if last
+            ;           size-8: Size in bytes, again (4k aligned)
+            ;
+
+init_free:  shl     a0,x6,0,12          ; address of first free block
+            stqs    a0,5,sp,16
+            sts     0,5,sp,24           ; initialize spinlock
+            ldca    sp,sp,32
+            
+            shl     a1,x7,0,12          ; first block size
+            stq     a1,a0               ; save to block header
+            add     a2,a0,a1,-8
+            stq     a1,a2               ; save to block footer
+            stq     0,a0,8              ; prev = NULL
+            stq     0,a0,16             ; next = NULL
+
+init_intr:  ldca    a3,ct,intr@start
+            mtcr    a3,ia
+            mfcr    a1,psq
+            or      a1,a1,0,1
+            mtcr    a1,psq
+            ldi     a2,-1
+            mtcr    a2,eim
+
+init_cons:  ldi     a0,0x101            ; console on channel 0x101
+            ldi     a2,0xF7             ; echo all, destr backspace, intr all
+            shl     a1,a0,0,32
+            stcs    a2,6,a1,2           ; set control byte
+            ldi     a3,0x101
+            stqs    a3,6,a1,8           ; set vector
+
+init_timer: ldi     x9,0x3FFFFF         ; cylon
+            define  timer_spec,0x000000100000002F
+            ldgis   a0,timer_spec@gh
+            ldca    a1,a0,timer_spec@gl
+            mtcr    a1,tcr
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+echo_loop:  ldca    p0,ct,prompt@start
+            call    tput
+            
+            mov     p0,sp
+            ldi     p1,126
+            add     sp,sp,0,128
+            call    tget
+            bez     rv,halt
+            
+            add     a0,p0,rv
+            ldi     a1,0x0A
+            stc     0,a0,1
+            stc     a1,a0
+            
+            call    tput
+            
+            sub     sp,sp,0,128
+            br      echo_loop
+
+halt:       sub     sp,sp,0,128
+            ldi     a0,0xcc
+            shl     a1,a0,0,6
+            or      a2,a1,0,4
+            mtcr    a2,psq
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;       tget - get line from terminal
+            ;
+            ;           p0      address to store read characters
+            ;           p1      max. characters to read
+            ;           rv      num characters read
+            ;
+
+tget:       add     sp,sp,0,16
+            stqs    lr,5,sp,-8
+            
+            stqs    x0,5,sp             ; loop ctr
+            mov     x0,0
+            
+            bez     p1,tget_exit
+            
+tget_loop:  call    cons_wait
+            sub     a0,rv,0,0x0A
+            bez     a0,tget_exit
+            add     a1,x0,p0
+            stc     rv,a1
+            inc     x0
+            sub     a2,p1,x0
+            bgz     a2,tget_loop
+            
+tget_exit:  ldqs    lr,5,sp,-8
+            mov     rv,x0
+            ldqs    x0,5,sp
+            sub     sp,sp,0,16
+            ret
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;       tput - write string to terminal
+            ;
+            ;           p0      address to read characters from
+            ;           rv      num characters printed
+            ;
+
+tput:       add     sp,sp,0,32
+            stqs    x1,5,sp,-24
+            stqs    lr,5,sp,-16
+            
+            stqs    x0,5,sp,-8          ; index
+            mov     x0,p0
+            stqs    p0,5,sp
+            
+tput_loop:  ldc     x1,x0
+            bez     x1,tput_exit
+            mov     p0,x1
+            call    cons_prt
+            inc     x0
+            br      tput_loop
+            
+tput_exit:  ldqs    lr,5,sp,-16
+            ldqs    a0,5,sp
+            ldqs    x0,5,sp,-8
+            sub     rv,x0,a0
+            ldqs    x1,5,sp,-24
+            sub     sp,sp,0,32
+            ret
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;       get_bit - get bit from bitmap
+            ;
+            ;           p0      address of bitmap
+            ;           p1      index of bit
+            ;           rv      value of bit
+            ;
+
+get_bit:    shl     a0,p1,0,-2
+            add     a1,a0,p0            ; which byte to read
+            ldc     a2,a1               ; get byte
+            and     a4,p1,0,3
+            shl     a3,a4,0,1
+            sub     a0,0,a3             ; shift amount
+            shl     a1,a2,a0
+            and     rv,a1,0,3           ; get bit
+            ret
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;       set_bit - get bit from bitmap
+            ;
+            ;           p0      address of bitmap
+            ;           p1      index of bit
+            ;           p2      new value of bit
+            ;
+
+set_bit:    shl     a0,p1,0,-2
+            add     a1,a0,p0            ; which byte to read
+            ldc     a2,a1               ; get byte
+            and     a4,p1,0,3
+            shl     a3,a4,0,1
+            ldi     a4,3
+            shl     a0,a4,a3
+            mcom    a5,a0               ; mask
+            and     a6,a2,a5            ; clear bit
+            shl     a4,p2,a3
+            or      a2,a6,a4            ; set bit to desired value
+            stc     a2,a1
+            ret
+
+	        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	        ;
+	        ;       get_main - get blocks of main memory
+	        ;
+	        ;           p0      requested size, in 4k clusters
+	        ;           rv      address of allocated block on success
+	        ;                   0 on failure
+	        ;
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;       Step 0: Acquire spinlock
+            ;
+
+get_main:   lds     a0,5,0,24
+            bnz     a0,get_main
+            
+            mfcr    a1,psq
+            and     a2,a1,0,-2
+            mtcr    a2,psq
+            ldi     a3,1
+            sts     a3,5,0,24
+            mtcr    a1,psq
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;       Step 1: Scan for a suitable sized block on the free list
+            ;
+
+            ldqs    a0,5,0,16
+            bez     a0,gm_fail
+
+            shl     a3,p0,0,12
+
+gm_scan:    ldq     a1,a0
+            sub     a2,a3,a1
+            blez    a2,gm_alloc         ; got it if a3 (request) <= a1 (size)
+            
+            ldq     a0,a0,16            ; next ptr
+            bez     a0,gm_fail
+            br      gm_scan
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;       Step 2: With a suitable block found, update the bitmap
+            ;
+
+gm_alloc:   stqs    lr,5,sp
+            stqs    x0,5,sp,8
+            shl     a1,a0,0,-12
+            add     x0,a1,p0            ; limit
+            stqs    x1,5,sp,16
+            add     x1,a1,0,1           ; start
+            stqs    x2,5,sp,24
+            mov     x2,a0
+            add     sp,sp,0,32
+            
+            ldqs    p0,5,0
+            sub     p1,x1,0,1
+            ldi     p2,2
+            call    set_bit             ; mark first block as StartAllocated
+            
+            br      gm_alloc_e
+            
+gm_alloc_l: ldqs    p0,5,0
+            mov     p1,x1
+            ldi     p2,1
+            call    set_bit             ; mark subsequent blocks Allocated
+            inc     x1
+gm_alloc_e: sub     a1,x0,x1
+            bgz     a1,gm_alloc_l
+            
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;       Step 3: Check if we are getting less than the request size
+            ;               Note X2 contains the address of the block we got
+            ;
+            
+            shl     a0,x0,0,12
+            sub     x1,a0,x2            ; recover requested size to X1
+            ldq     a2,x2               ; size we got
+            sub     a3,a2,x1
+            bgz     a3,gm_sz_lt         ; if we got a block bigger than needed
+            
+gm_sz_eq:   ldq     a0,x2,8             ; get previous ptr
+            bez     a0,gm_sz_eq_n       ; nothing to do if null
+            
+            ldq     a1,x2,16            ; get our next pointer
+            stq     a1,a0,16            ; prev->next = next
+
+gm_sz_eq_n: ldq     x1,x2,16            ; get next ptr
+            bez     x1,gm_sz_done       ; nothing to do if null
+            
+            ldq     a1,x2,8             ; get our previous pointer
+            stq     a1,x1,8             ; next->prev = prev
+
+            br      gm_sz_done
+
+gm_sz_lt:   ldq     a1,x2,8             ; get our previous ptr
+            ldq     a2,x2,16            ; next ptr
+            ldq     a3,x2               ; size
+            add     a0,x2,x1            ; start of new block
+            sub     a4,a3,x1            ; new size
+            stq     a1,a0,8
+            stq     a2,a0,16
+            stq     a4,a0
+            add     a3,a0,a4,-8
+            stq     a4,a3
+            mov     x1,a0
+            bez     a2,gm_sz_lt_p
+            stq     a0,a2,8
+gm_sz_lt_p: bez     a1,gm_sz_done
+            stq     a0,a1,16
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;       Step 4: Check if we need to update the first pointer
+            ;               X1 contains ptr to next block, X2 current
+            ;
+
+gm_sz_done: ldqs    a0,5,0,16           ; get first ptr
+            sub     a1,a0,x2
+            moveq   a0,a1,x1
+            stqs    a0,5,0,16
+
+            sub     sp,sp,0,32
+            ldqs    lr,5,sp
+            ldqs    x0,5,sp,8
+            ldqs    x1,5,sp,16
+            mov     rv,x2
+            ldqs    x2,5,sp,24
+            br      gm_exit
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;       Oh no!!!!!!!!!!!!!
+            ;
+
+gm_fail:    xor     rv,rv,rv
+
+gm_exit:    mfcr    a1,psq
+            and     a2,a1,0,-2
+            mtcr    a2,psq
+            sts     0,5,0,24
+            mtcr    a1,psq
+            ret
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;       free_main - release allocated clusters
+            ;
+            ;           p0      address
+            ;           rv      number of 4k clusters freed
+            ;                   0 on failure
+            ;
+
+free_main:  lds     a0,5,0,24           ; get spinlock
+            bnz     a0,free_main
+            
+            mfcr    a1,psq
+            and     a2,a1,0,-2
+            mtcr    a2,psq
+            ldi     a3,1
+            sts     a3,5,0,24
+            mtcr    a1,psq
+
+            stqs    lr,5,sp
+            stqs    x0,5,sp,8
+            mov     x0,p0               ; block to free
+            stqs    x1,5,sp,16          ; size in 4k clusters
+            add     sp,sp,0,24
+            call    get_span
+            bez     rv,fm_fail
+            mov     x1,rv
+
+            stqs    x2,5,sp
+            add     sp,sp,0,8
+            xor     x2,x2,x2            ; loop counter
+
+fm_bmp_l:   shl     a0,x0,0,-12
+            add     p1,a0,x2
+            inc     x2
+            ldqs    p0,5,0
+            xor     p2,p2,p2
+            call    set_bit
+            sub     a0,x1,x2
+            bgz     a0,fm_bmp_l
+
+fm_flist:   ldqs    a0,5,0,16
+            bez     a0,fm_fl_nol
+
+            mov     p0,x0
+            call    get_p_free
+            bez     rv,fm_fl_nol
+
+            ldq     a0,rv,16
+            stq     x0,rv,16            ; prev->next = current
+            stq     rv,x0,8
+            stq     a0,x0,16            ; current->next = old prev->next
+            bez     a0,fm_fl_done
+            stq     x0,a0,8             ; prev->next->prev = current
+            br      fm_fl_done
+
+fm_fl_nol:  ldqs    a0,5,0,16
+            stq     0,x0,8              ; current->prev = 0
+            stq     a0,x0,16            ; current->next = old start
+            stqs    x0,5,0,16           ; start = current
+            bez     a0,fm_fl_done
+            stq     x0,a0,8
+
+fm_fl_done: shl     a0,x1,0,12
+            stq     a0,x0
+            add     a1,x0,a0,-8
+            stq     a0,a1
+            sub     sp,sp,0,8
+            ldqs    x2,5,sp
+            call    fuse_right
+            call    fuse_left
+            mov     rv,x1
+            br      fm_exit
+
+fm_fail:    xor     rv,rv,rv
+
+fm_exit:    sub     sp,sp,0,24
+            ldqs    lr,5,sp
+            ldqs    x0,5,sp,8
+            ldqs    x1,5,sp,16
+            mfcr    a1,psq
+            and     a2,a1,0,-2
+            mtcr    a2,psq
+            sts     0,5,0,24
+            mtcr    a1,psq
+            ret
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;       fuse_left - consolidate adjacent free blocks
+            ;
+            ;           p0      address of free block
+            ;
+
+fuse_left:  ldq     p0,p0,8
+            bez     p0,fuse_r_end
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;       fuse_right - consolidate adjacent free blocks
+            ;
+            ;           p0      address of free block
+            ;
+
+fuse_right: ldq     a2,p0,16            ; check next
+            bez     a2,fuse_r_end
+
+            ldq     a0,p0
+            add     a3,a0,p0
+            sub     a4,a3,a2
+            bnz     a4,fuse_r_end       ; only fuse adjacent blocks
+
+            ldq     a5,a2,16            ; next->next
+            bez     a5,fuse_r_c
+            stq     p0,a5,8             ; next->next->prev = current
+
+fuse_r_c:   stq     a5,p0,16            ; next = next->next
+            ldq     a3,a2
+            add     a1,a0,a3            ; new size
+            stq     a1,p0
+            add     a2,p0,a1,-8
+            stq     a1,a2
+
+fuse_r_end: ret
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;       get_p_free - return the entry in the free list immediately
+            ;                    before the address specified
+            ;
+            ;           p0      address
+            ;           rv      start of previous free block
+            ;                   0 on failure
+            ;
+
+get_p_free: ldqs    rv,5,0,16           ; get first ptr
+            bez     rv,gp_fail          ; fail if null
+            sub     a1,p0,rv
+            blez    a1,gp_fail          ; fail if no left neighbor
+
+gp_loop:    ldq     a2,rv,16            ; get next
+            bez     a2,gp_exit          ; exit if nothing left in free list
+            sub     a1,a2,p0
+            bgz     a1,gp_exit          ; exit if next > request
+            mov     rv,a2
+            br      gp_loop
+
+gp_fail:    xor     rv,rv,rv
+
+gp_exit:    ret
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            ;
+            ;       get_span - return the size of an allocation
+            ;
+            ;           p0      address of allocation
+            ;           rv      size in 4k clusters
+            ;                   0 on failure
+            ;
+
+get_span:   shl     a0,p0,0,-12
+            ldqs    a1,5,0,8
+            ldi     a2,0x3FF
+            or      a4,a1,a2
+            inc     a4
+            shl     a5,a4,0,3
+            sub     a3,a5,a0            ; number of bits - selected bit
+            blez    a3,gs_fail          ; do not overrun end of bitmap
+            
+            stqs    x0,5,sp,8
+            mov     x0,a0               ; start bit
+            stqs    x1,5,sp,16
+            ldi     x1,1                ; counter
+            stqs    lr,5,sp
+            stqs    x2,5,sp,24          ; bit limit
+            mov     x2,a5
+            add     sp,sp,0,32
+            
+            ldqs    p0,5,0
+            mov     p1,x0
+            call    get_bit
+            sub     a0,rv,0,2
+            bnz     a0,gs_f_late
+
+gs_loop:    add     a5,x0,x1
+            sub     a3,x2,a5
+            blez    a3,gs_loop_e        ; do not overrun end of bitmap !!
+            
+            ldqs    p0,5,0
+            add     p1,x0,x1
+            call    get_bit
+            sub     a0,rv,0,1
+            bnz     a0,gs_loop_e
+            inc     x1
+            br      gs_loop
+            
+gs_loop_e:  sub     sp,sp,0,32
+            ldqs    x0,5,sp,8
+            mov     rv,x1
+            ldqs    x1,5,sp,16
+            ldqs    lr,5,sp
+            ldqs    x2,5,sp,24
+            br      gs_exit
+
+gs_f_late:  sub     sp,sp,0,32
+            ldqs    lr,5,sp
+            ldqs    x0,5,sp,8
+            ldqs    x1,5,sp,16
+            ldqs    x2,5,sp,24
+            
+gs_fail:    xor     rv,rv,rv
+
+gs_exit:    ret
+
+debug_fl:   ldqs    a0,5,0,16
+
+debug_fl_l: hvc     4,a0
+            ldq     a1,a0
+            hvc     4,a1
+            ldq     a1,a0,8
+            hvc     4,a1
+            ldq     a1,a0,16
+            hvc     4,a1
+            ldq     a0,a0,16
+            bnz     a0,debug_fl_l
+            hvc     4,a0
+            ret
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+cons_wait:  ldi     a5,1
+            mfcr    a6,a5,psq
+            mtcr    a6,psq              ; with interrupts off
+
+cons_get:   ldi     a0,0x101
+            shl     a4,a0,0,32
+            ldcs    a2,6,a4,0           ; check for data
+            and     a3,a2,0,128
+            bez     a3,cons_do_w        ; if no data, do wait
+
+            ldcs    rv,6,a4,1
+            mov     a1,rv
+            moveq   rv,a1,0,4           ; handle EOF
+            moveq   rv,a1,0,-1          ; handle alternate EOF
+            ret
+
+cons_do_w:  ldi     a7,5
+            mfcr    a6,psq
+            mtcr    a6,a7,psq           ; wait state with interrupts
+            br      cons_get
+
+cons_prt:   ldi     a0,0x101
+            shl     a4,a0,0,32
+cons_prt_w: ldcs    a2,6,a4,0
+            and     a3,a2,0,64
+            bez     a3,cons_prt_w
+            stcs    p0,6,a4,3
+            ret
+
+intr:       zero    0x100
+
+extn:       ldi     x8,4
+            add     sp,sp,0,8
+            stqs    x9,5,sp
+            mfcr    x9,x8,aps
+            mtcr    x9,aps              ; clear wait state
+            ldqs    x9,5,sp
+            sub     sp,sp,0,8
+            rex     0                   ; assembler bug: should just be 'rex'
+
+            zero    0x6E0
+
+timer:      shl     x8,x9,0,63
+            shl     x9,x9,0,-1
+            or      x9,x8,x9
+
+            ldgis   x8,timer_spec@gh
+            ldca    x8,x8,timer_spec@gl
+            mtcr    x8,tcr
+
+            rex     0
+
+            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+prompt:     asciz   "Echo ---> "
+
+top_text:
